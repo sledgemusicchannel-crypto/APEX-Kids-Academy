@@ -18,7 +18,7 @@
 <body class="min-h-screen flex flex-col font-sans pb-16">
 
   <!-- Audio Unlock Banner for Android WebView -->
-  <div id="audioUnlockBanner" onclick="unlockAudioEngine()" class="bg-gradient-to-r from-amber-500 to-pink-500 text-slate-950 font-black text-xs py-2 px-4 text-center cursor-pointer flex items-center justify-center gap-2 shadow-md">
+  <div id="audioUnlockBanner" onclick="unlockAudioEngine()" class="bg-gradient-to-r from-amber-500 to-pink-500 text-slate-950 font-black text-xs py-2.5 px-4 text-center cursor-pointer flex items-center justify-center gap-2 shadow-md">
     <i class="fa-solid fa-volume-high text-sm"></i> TAP HERE TO UNLOCK APP SOUND & VOICE NARRATION
   </div>
 
@@ -149,21 +149,25 @@
   </footer>
 
   <script>
-    // ==================== AUDIO UNLOCK & ENGINE ====================
+    // ==================== ROBUST ANDROID WEBVIEW AUDIO ENGINE ====================
     let audioCtx = null;
-    let speechAudio = new Audio();
 
     function unlockAudioEngine() {
       try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') audioCtx.resume();
         
-        // Play a silent or test sound to wake up Android audio output
         playChime('success');
-        speechAudio.src = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=Sound+Enabled";
-        speechAudio.play().catch(() => {});
+        
+        // Warm up speech synthesis engine for WebView
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const dummy = new SpeechSynthesisUtterance("Audio enabled");
+          dummy.volume = 0.1;
+          window.speechSynthesis.speak(dummy);
+        }
 
-        // Hide the unlock banner once clicked
+        // Hide unlock banner
         document.getElementById('audioUnlockBanner').style.display = 'none';
       } catch(e) {}
     }
@@ -211,21 +215,26 @@
       stopKidAudio();
       playChime('tap');
 
-      const cleanText = encodeURIComponent(text);
-      speechAudio.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=${cleanText}`;
-      speechAudio.play().catch(() => {
-        if ('speechSynthesis' in window) {
-          const u = new SpeechSynthesisUtterance(text);
-          u.rate = 0.9;
-          window.speechSynthesis.speak(u);
-        }
-      });
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        utterance.pitch = 1.1;
+        
+        const voices = window.speechSynthesis.getVoices();
+        const engVoice = voices.find(v => v.lang.includes('en-US') || v.lang.includes('en-GB') || v.lang.includes('en'));
+        if (engVoice) utterance.voice = engVoice;
+
+        window.speechSynthesis.speak(utterance);
+      }
     }
 
     function stopKidAudio() {
-      speechAudio.pause();
-      speechAudio.currentTime = 0;
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
     }
 
     // ==================== TAB SWITCHER ====================
