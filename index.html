@@ -17,6 +17,11 @@
 </head>
 <body class="min-h-screen flex flex-col font-sans pb-16">
 
+  <!-- Audio Unlock Banner for Android WebView -->
+  <div id="audioUnlockBanner" onclick="unlockAudioEngine()" class="bg-gradient-to-r from-amber-500 to-pink-500 text-slate-950 font-black text-xs py-2 px-4 text-center cursor-pointer flex items-center justify-center gap-2 shadow-md">
+    <i class="fa-solid fa-volume-high text-sm"></i> TAP HERE TO UNLOCK APP SOUND & VOICE NARRATION
+  </div>
+
   <!-- Top Header -->
   <header class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b-2 border-indigo-500/30 px-4 py-3">
     <div class="max-w-xl mx-auto flex items-center justify-between">
@@ -144,14 +149,24 @@
   </footer>
 
   <script>
-    // ==================== HYBRID WEBVIEW AUDIO ENGINE ====================
+    // ==================== AUDIO UNLOCK & ENGINE ====================
     let audioCtx = null;
+    let speechAudio = new Audio();
 
-    // Unlock audio context on any first touch
-    document.addEventListener('click', () => {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-    }, { once: true });
+    function unlockAudioEngine() {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        // Play a silent or test sound to wake up Android audio output
+        playChime('success');
+        speechAudio.src = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=Sound+Enabled";
+        speechAudio.play().catch(() => {});
+
+        // Hide the unlock banner once clicked
+        document.getElementById('audioUnlockBanner').style.display = 'none';
+      } catch(e) {}
+    }
 
     function playChime(type = 'tap') {
       try {
@@ -192,29 +207,25 @@
     }
 
     function speakText(text) {
+      if (!audioCtx) unlockAudioEngine();
       stopKidAudio();
       playChime('tap');
 
-      if (!('speechSynthesis' in window)) return;
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      utterance.pitch = 1.1;
-
-      const voices = window.speechSynthesis.getVoices();
-      const engVoice = voices.find(v => v.lang.includes('en-US') || v.lang.includes('en-GB') || v.lang.includes('en'));
-      if (engVoice) utterance.voice = engVoice;
-
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utterance);
+      const cleanText = encodeURIComponent(text);
+      speechAudio.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=${cleanText}`;
+      speechAudio.play().catch(() => {
+        if ('speechSynthesis' in window) {
+          const u = new SpeechSynthesisUtterance(text);
+          u.rate = 0.9;
+          window.speechSynthesis.speak(u);
+        }
+      });
     }
 
     function stopKidAudio() {
+      speechAudio.pause();
+      speechAudio.currentTime = 0;
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    }
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
     }
 
     // ==================== TAB SWITCHER ====================
