@@ -1,0 +1,16 @@
+{
+  "name": "APEX Kids Academy",
+  "short_name": "APEX Kids",
+  "description": "Kindergarten and Primary Learning Edition with Audio Phonics and Math",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3410/3410455.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
