@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0f172a" />
   <title>APEX Kids Academy | Kindergarten & Primary Learning</title>
-  <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -17,11 +16,6 @@
   </style>
 </head>
 <body class="min-h-screen flex flex-col font-sans pb-16">
-
-  <!-- Audio Unlock Banner for Android WebView -->
-  <div id="audioUnlockBanner" onclick="unlockAudioEngine()" class="bg-gradient-to-r from-amber-500 to-pink-500 text-slate-950 font-black text-xs py-2.5 px-4 text-center cursor-pointer flex items-center justify-center gap-2 shadow-md">
-    <i class="fa-solid fa-volume-high text-sm"></i> TAP HERE TO UNLOCK REAL VOICE NARRATION
-  </div>
 
   <!-- Top Header -->
   <header class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b-2 border-indigo-500/30 px-4 py-3">
@@ -65,11 +59,11 @@
     <!-- ==================== TAB 1: ABC PHONICS ==================== -->
     <section id="ksec-abc" class="space-y-4">
       <div class="kid-card p-5 text-center space-y-3 border-pink-500/40">
-        <span class="px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-black">TAP A LETTER FOR VOICE AUDIO!</span>
+        <span class="px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-black">TAP A LETTER TO HEAR IT!</span>
         <div id="abcDisplayEmoji" class="text-6xl py-2">🍎</div>
         <h2 id="abcDisplayWord" class="text-2xl font-black text-white">A is for Apple</h2>
-        <button onclick="playVoiceAudio(document.getElementById('abcDisplayWord').textContent)" class="kid-btn px-6 py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-black text-sm shadow-lg">
-          <i class="fa-solid fa-volume-high mr-1.5"></i> Repeat Voice Pronunciation
+        <button onclick="speakText(document.getElementById('abcDisplayWord').textContent)" class="kid-btn px-6 py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-black text-sm shadow-lg">
+          <i class="fa-solid fa-volume-high mr-1.5"></i> Repeat Sound
         </button>
       </div>
 
@@ -126,6 +120,7 @@
         <button onclick="closeParentalGate()" class="text-gray-400 hover:text-white text-sm font-bold">✕</button>
       </div>
       
+      <!-- Step 1: Math Lock -->
       <div id="gateLockView" class="space-y-3">
         <p class="text-xs text-gray-300">Parents & Teachers: Please solve this problem to unlock the guide and privacy information.</p>
         <div id="gateMathPrompt" class="text-xl font-black text-center text-white bg-slate-900 py-3 rounded-xl">14 + 19 = ?</div>
@@ -133,6 +128,7 @@
         <button onclick="verifyParentalGate()" class="w-full py-2.5 rounded-xl bg-amber-500 text-slate-950 font-black text-xs">UNLOCK ADULT SECTION</button>
       </div>
 
+      <!-- Step 2: Unlocked Parent/Teacher Info -->
       <div id="gateUnlockedView" class="hidden space-y-3 text-xs text-gray-300">
         <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
           <p class="font-bold text-white">Classroom & Home Guide:</p>
@@ -150,70 +146,23 @@
   </footer>
 
   <script>
-    // ==================== CLOUD MP3 VOICE STREAM ENGINE ====================
-    let audioCtx = null;
-    const voiceAudio = new Audio();
-
-    function unlockAudioEngine() {
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        playChime('success');
-        document.getElementById('audioUnlockBanner').style.display = 'none';
-      } catch(e) {}
-    }
-
-    function playChime(type = 'tap') {
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        const now = audioCtx.currentTime;
-
-        if (type === 'success') {
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(523.25, now);
-          osc.frequency.setValueAtTime(659.25, now + 0.1);
-          osc.frequency.setValueAtTime(783.99, now + 0.2);
-          gain.gain.setValueAtTime(0.2, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-          osc.start(now);
-          osc.stop(now + 0.4);
-        } else {
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(587.33, now);
-          gain.gain.setValueAtTime(0.12, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-          osc.start(now);
-          osc.stop(now + 0.12);
-        }
-      } catch (e) {}
-    }
-
-    function playVoiceAudio(text) {
-      if (!audioCtx) unlockAudioEngine();
-      stopKidAudio();
-      
-      // Streams high-quality human voice MP3 directly into the WebView
-      const cleanText = encodeURIComponent(text);
-      voiceAudio.src = `https://api.streamelements.com/kappa/v2/speech?voice=Amy&text=${cleanText}`;
-      voiceAudio.play().catch(() => {
-        playChime('tap');
-      });
+    // ==================== AUDIO SPEECH ENGINE ====================
+    function speakText(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.9;
+      u.pitch = 1.1;
+      window.speechSynthesis.speak(u);
     }
 
     function stopKidAudio() {
-      voiceAudio.pause();
-      voiceAudio.currentTime = 0;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     }
 
     // ==================== TAB SWITCHER ====================
     function showKidTab(tab) {
       stopKidAudio();
-      playChime('tap');
       const styles = {
         abc: 'kid-btn bg-pink-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
         math: 'kid-btn bg-sky-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
@@ -252,7 +201,7 @@
         const phrase = `${item.l} is for ${item.w}`;
         document.getElementById('abcDisplayEmoji').textContent = item.e;
         document.getElementById('abcDisplayWord').textContent = phrase;
-        playVoiceAudio(phrase);
+        speakText(phrase);
       };
       abcGrid.appendChild(btn);
     });
@@ -279,14 +228,12 @@
         bEl.textContent = num;
         bEl.onclick = () => {
           if (num === currentMathAns) {
-            playChime('success');
             document.getElementById('mathFeedback').textContent = '🎉 Great Job! Correct!';
-            playVoiceAudio(`Great job! ${a} plus ${b} equals ${currentMathAns}`);
-            setTimeout(newMathQuestion, 2000);
+            speakText(`Great job! ${a} plus ${b} equals ${currentMathAns}`);
+            setTimeout(newMathQuestion, 1800);
           } else {
-            playChime('error');
             document.getElementById('mathFeedback').textContent = 'Try again! You can do it!';
-            playVoiceAudio('Try again!');
+            speakText('Try again!');
           }
         };
         box.appendChild(bEl);
@@ -307,7 +254,7 @@
       card.innerHTML = `
         <div class="flex items-center justify-between">
           <h3 class="text-sm font-black text-white">${st.emoji} ${st.title}</h3>
-          <button onclick="playVoiceAudio('${st.title}. ${st.text}')" class="kid-btn px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black">
+          <button onclick="speakText('${st.title}. ${st.text}')" class="kid-btn px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black">
             <i class="fa-solid fa-play mr-1"></i> Read to Me
           </button>
         </div>
@@ -332,8 +279,8 @@
         kCtx.lineCap = 'round';
       }
     }
-    function setBrushColor(c) { brushColor = c; kCtx.strokeStyle = c; playChime('tap'); }
-    function clearKidCanvas() { kCtx.clearRect(0, 0, kCanvas.width, kCanvas.height); playChime('tap'); }
+    function setBrushColor(c) { brushColor = c; kCtx.strokeStyle = c; }
+    function clearKidCanvas() { kCtx.clearRect(0, 0, kCanvas.width, kCanvas.height); }
     function getKPos(e) {
       const r = kCanvas.getBoundingClientRect();
       const cx = e.touches ? e.touches[0].clientX : e.clientX;
@@ -365,11 +312,9 @@
     }
     function verifyParentalGate() {
       if (parseInt(document.getElementById('gateAnswerInput').value, 10) === gateSum) {
-        playChime('success');
         document.getElementById('gateLockView').classList.add('hidden');
         document.getElementById('gateUnlockedView').classList.remove('hidden');
       } else {
-        playChime('error');
         alert('Incorrect answer. Adult verification required.');
       }
     }
