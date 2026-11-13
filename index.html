@@ -19,7 +19,7 @@
 
   <!-- Audio Unlock Banner for Android WebView -->
   <div id="audioUnlockBanner" onclick="unlockAudioEngine()" class="bg-gradient-to-r from-amber-500 to-pink-500 text-slate-950 font-black text-xs py-2.5 px-4 text-center cursor-pointer flex items-center justify-center gap-2 shadow-md">
-    <i class="fa-solid fa-volume-high text-sm"></i> TAP HERE TO UNLOCK APP SOUND & VOICE NARRATION
+    <i class="fa-solid fa-volume-high text-sm"></i> TAP HERE TO UNLOCK APP SOUND & MUSICAL PHONICS
   </div>
 
   <!-- Top Header -->
@@ -64,11 +64,11 @@
     <!-- ==================== TAB 1: ABC PHONICS ==================== -->
     <section id="ksec-abc" class="space-y-4">
       <div class="kid-card p-5 text-center space-y-3 border-pink-500/40">
-        <span class="px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-black">TAP A LETTER TO HEAR IT!</span>
+        <span class="px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-black">TAP A LETTER FOR MUSICAL PHONICS!</span>
         <div id="abcDisplayEmoji" class="text-6xl py-2">🍎</div>
         <h2 id="abcDisplayWord" class="text-2xl font-black text-white">A is for Apple</h2>
-        <button onclick="speakText(document.getElementById('abcDisplayWord').textContent)" class="kid-btn px-6 py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-black text-sm shadow-lg">
-          <i class="fa-solid fa-volume-high mr-1.5"></i> Repeat Sound
+        <button onclick="playNoteForText(document.getElementById('abcDisplayWord').textContent)" class="kid-btn px-6 py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-black text-sm shadow-lg">
+          <i class="fa-solid fa-volume-high mr-1.5"></i> Play Phonics Note
         </button>
       </div>
 
@@ -90,9 +90,9 @@
     <section id="ksec-stories" class="hidden space-y-4">
       <div class="kid-card p-5 space-y-4 border-emerald-500/40">
         <div class="flex items-center justify-between">
-          <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black">AUDIO STORY TIME</span>
-          <button onclick="stopKidAudio()" class="px-3 py-1 rounded-xl bg-rose-600 text-white text-xs font-bold">
-            <i class="fa-solid fa-stop mr-1"></i> Stop
+          <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black">MUSICAL STORY TIME</span>
+          <button onclick="playMusicalChord()" class="px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black">
+            <i class="fa-solid fa-music mr-1"></i> Play Story Melody
           </button>
         </div>
         <div id="storyList" class="space-y-3"></div>
@@ -149,92 +149,67 @@
   </footer>
 
   <script>
-    // ==================== ROBUST ANDROID WEBVIEW AUDIO ENGINE ====================
+    // ==================== BULLETPROOF WEB AUDIO PHONICS ENGINE ====================
     let audioCtx = null;
-    const speechAudio = new Audio();
 
     function unlockAudioEngine() {
       try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        
-        playChime('success');
-        
-        // Prime the audio element for WebView playback
-        speechAudio.src = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=Ready";
-        speechAudio.play().catch(() => {});
-
-        // Hide unlock banner
+        playMusicalChord();
         document.getElementById('audioUnlockBanner').style.display = 'none';
       } catch(e) {}
     }
 
-    function playChime(type = 'tap') {
+    // Play unique musical pitch based on first letter code
+    function playNoteForText(text) {
       try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const charCode = text.toUpperCase().charCodeAt(0) || 65;
+        // Map alphabet to musical frequencies (C4 to C6 scale)
+        const freq = 261.63 * Math.pow(2, (charCode - 65) / 12);
+
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        const now = audioCtx.currentTime;
 
-        if (type === 'success') {
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(523.25, now);
-          osc.frequency.setValueAtTime(659.25, now + 0.1);
-          osc.frequency.setValueAtTime(783.99, now + 0.2);
-          gain.gain.setValueAtTime(0.2, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-          osc.start(now);
-          osc.stop(now + 0.4);
-        } else if (type === 'error') {
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(220, now);
-          osc.frequency.setValueAtTime(180, now + 0.15);
-          gain.gain.setValueAtTime(0.2, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-          osc.start(now);
-          osc.stop(now + 0.3);
-        } else {
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(587.33, now);
-          gain.gain.setValueAtTime(0.12, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-          osc.start(now);
-          osc.stop(now + 0.12);
-        }
+        const now = audioCtx.currentTime;
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+        osc.start(now);
+        osc.stop(now + 0.5);
       } catch (e) {}
     }
 
-    function speakText(text) {
-      if (!audioCtx) unlockAudioEngine();
-      stopKidAudio();
-      playChime('tap');
-
-      const cleanText = encodeURIComponent(text);
-      speechAudio.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=${cleanText}`;
-      speechAudio.play().catch(() => {
-        // Fallback to Web Speech API if audio stream fails
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.rate = 0.9;
-          window.speechSynthesis.speak(utterance);
-        }
-      });
-    }
-
-    function stopKidAudio() {
-      speechAudio.pause();
-      speechAudio.currentTime = 0;
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    function playMusicalChord() {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        [261.63, 329.63, 392.00, 523.25].forEach((f, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, audioCtx.currentTime + i * 0.08);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime + i * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.08 + 0.4);
+          osc.start(audioCtx.currentTime + i * 0.08);
+          osc.stop(audioCtx.currentTime + i * 0.08 + 0.4);
+        });
+      } catch (e) {}
     }
 
     // ==================== TAB SWITCHER ====================
     function showKidTab(tab) {
-      stopKidAudio();
-      playChime('tap');
+      playMusicalChord();
       const styles = {
         abc: 'kid-btn bg-pink-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
         math: 'kid-btn bg-sky-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
@@ -273,7 +248,7 @@
         const phrase = `${item.l} is for ${item.w}`;
         document.getElementById('abcDisplayEmoji').textContent = item.e;
         document.getElementById('abcDisplayWord').textContent = phrase;
-        speakText(phrase);
+        playNoteForText(item.l);
       };
       abcGrid.appendChild(btn);
     });
@@ -300,14 +275,12 @@
         bEl.textContent = num;
         bEl.onclick = () => {
           if (num === currentMathAns) {
-            playChime('success');
+            playMusicalChord();
             document.getElementById('mathFeedback').textContent = '🎉 Great Job! Correct!';
-            speakText(`Great job! ${a} plus ${b} equals ${currentMathAns}`);
             setTimeout(newMathQuestion, 2000);
           } else {
-            playChime('error');
+            playNoteForText('E');
             document.getElementById('mathFeedback').textContent = 'Try again! You can do it!';
-            speakText('Try again!');
           }
         };
         box.appendChild(bEl);
@@ -328,8 +301,8 @@
       card.innerHTML = `
         <div class="flex items-center justify-between">
           <h3 class="text-sm font-black text-white">${st.emoji} ${st.title}</h3>
-          <button onclick="speakText('${st.title}. ${st.text}')" class="kid-btn px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black">
-            <i class="fa-solid fa-play mr-1"></i> Read to Me
+          <button onclick="playMusicalChord()" class="kid-btn px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black">
+            <i class="fa-solid fa-play mr-1"></i> Play Melody
           </button>
         </div>
         <p class="text-xs text-gray-300 leading-relaxed">${st.text}</p>
@@ -353,8 +326,8 @@
         kCtx.lineCap = 'round';
       }
     }
-    function setBrushColor(c) { brushColor = c; kCtx.strokeStyle = c; playChime('tap'); }
-    function clearKidCanvas() { kCtx.clearRect(0, 0, kCanvas.width, kCanvas.height); playChime('tap'); }
+    function setBrushColor(c) { brushColor = c; kCtx.strokeStyle = c; playNoteForText('C'); }
+    function clearKidCanvas() { kCtx.clearRect(0, 0, kCanvas.width, kCanvas.height); playNoteForText('G'); }
     function getKPos(e) {
       const r = kCanvas.getBoundingClientRect();
       const cx = e.touches ? e.touches[0].clientX : e.clientX;
@@ -371,7 +344,7 @@
     // ==================== PARENTAL GATE ====================
     let gateSum = 33;
     function openParentalGate() {
-      stopKidAudio();
+      playMusicalChord();
       const x = Math.floor(Math.random() * 15) + 11;
       const y = Math.floor(Math.random() * 15) + 11;
       gateSum = x + y;
@@ -386,11 +359,11 @@
     }
     function verifyParentalGate() {
       if (parseInt(document.getElementById('gateAnswerInput').value, 10) === gateSum) {
-        playChime('success');
+        playMusicalChord();
         document.getElementById('gateLockView').classList.add('hidden');
         document.getElementById('gateUnlockedView').classList.remove('hidden');
       } else {
-        playChime('error');
+        playNoteForText('E');
         alert('Incorrect answer. Adult verification required.');
       }
     }
