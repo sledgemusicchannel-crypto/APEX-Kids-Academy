@@ -151,6 +151,7 @@
   <script>
     // ==================== ROBUST ANDROID WEBVIEW AUDIO ENGINE ====================
     let audioCtx = null;
+    const speechAudio = new Audio();
 
     function unlockAudioEngine() {
       try {
@@ -159,13 +160,9 @@
         
         playChime('success');
         
-        // Warm up speech synthesis engine for WebView
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const dummy = new SpeechSynthesisUtterance("Audio enabled");
-          dummy.volume = 0.1;
-          window.speechSynthesis.speak(dummy);
-        }
+        // Prime the audio element for WebView playback
+        speechAudio.src = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=Ready";
+        speechAudio.play().catch(() => {});
 
         // Hide unlock banner
         document.getElementById('audioUnlockBanner').style.display = 'none';
@@ -215,26 +212,23 @@
       stopKidAudio();
       playChime('tap');
 
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9;
-        utterance.pitch = 1.1;
-        
-        const voices = window.speechSynthesis.getVoices();
-        const engVoice = voices.find(v => v.lang.includes('en-US') || v.lang.includes('en-GB') || v.lang.includes('en'));
-        if (engVoice) utterance.voice = engVoice;
-
-        window.speechSynthesis.speak(utterance);
-      }
+      const cleanText = encodeURIComponent(text);
+      speechAudio.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=${cleanText}`;
+      speechAudio.play().catch(() => {
+        // Fallback to Web Speech API if audio stream fails
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = 0.9;
+          window.speechSynthesis.speak(utterance);
+        }
+      });
     }
 
     function stopKidAudio() {
+      speechAudio.pause();
+      speechAudio.currentTime = 0;
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    }
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
     }
 
     // ==================== TAB SWITCHER ====================
