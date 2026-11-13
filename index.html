@@ -145,8 +145,13 @@
 
   <script>
     // ==================== HYBRID WEBVIEW AUDIO ENGINE ====================
-    let fallbackAudio = new Audio();
     let audioCtx = null;
+
+    // Unlock audio context on any first touch
+    document.addEventListener('click', () => {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }, { once: true });
 
     function playChime(type = 'tap') {
       try {
@@ -190,33 +195,26 @@
       stopKidAudio();
       playChime('tap');
 
-      const isAndroidWebView = /wv|Android.*Version\/\d+\.\d+/i.test(navigator.userAgent);
-      const voices = ('speechSynthesis' in window) ? window.speechSynthesis.getVoices() : [];
+      if (!('speechSynthesis' in window)) return;
 
-      if (!isAndroidWebView && 'speechSynthesis' in window && voices.length > 0) {
-        const u = new SpeechSynthesisUtterance(text);
-        u.rate = 0.9;
-        u.pitch = 1.1;
-        window.speechSynthesis.speak(u);
-      } else {
-        // HTML5 Audio TTS Fallback for Android WebView
-        const chunks = text.match(/.{1,180}(\s|$)/g) || [text];
-        let idx = 0;
-        function playNextChunk() {
-          if (idx >= chunks.length) return;
-          const q = encodeURIComponent(chunks[idx].trim());
-          fallbackAudio.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=${q}`;
-          fallbackAudio.onended = () => { idx++; playNextChunk(); };
-          fallbackAudio.play().catch(() => {});
-        }
-        playNextChunk();
-      }
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1.1;
+
+      const voices = window.speechSynthesis.getVoices();
+      const engVoice = voices.find(v => v.lang.includes('en-US') || v.lang.includes('en-GB') || v.lang.includes('en'));
+      if (engVoice) utterance.voice = engVoice;
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
     }
 
     function stopKidAudio() {
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-      fallbackAudio.pause();
-      fallbackAudio.currentTime = 0;
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
     }
 
     // ==================== TAB SWITCHER ====================
@@ -383,7 +381,6 @@
       }
     }
 
-    if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
     newMathQuestion();
   </script>
 </body>
