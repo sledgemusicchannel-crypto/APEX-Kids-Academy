@@ -53,7 +53,7 @@
           <i class="fa-solid fa-stop mr-2"></i>Stop Voice
         </button>
       </div>
-      <p class="text-[10px] leading-relaxed text-slate-400">Voice requires an internet connection when your Android WebView does not provide a built-in speech voice. Keep media volume turned up.</p>
+      <p class="text-[10px] leading-relaxed text-slate-400">The 15 recorded stories can play from the included audio folder. Other lesson voices may require internet or device speech support. Keep media volume turned up.</p>
     </section>
 
     <div class="grid grid-cols-4 gap-2">
@@ -155,6 +155,7 @@ let audioChunks = [];
 let audioChunkIndex = 0;
 let currentMode = '';
 let currentUtterance = null;
+let currentSpeechText = '';
 
 function setVoiceStatus(message, type='info') {
   voiceStatus.textContent = message;
@@ -215,11 +216,22 @@ function playOnlineChunk(runId) {
   }
 }
 voiceAudio.addEventListener('ended', () => {
+  if (currentMode === 'recorded') {
+    currentMode = '';
+    setVoiceStatus('Story finished. Tap Read to Me to listen again.', 'success');
+    return;
+  }
   if (currentMode !== 'audio') return;
   audioChunkIndex++;
   playOnlineChunk(speechRunId);
 });
 voiceAudio.addEventListener('error', () => {
+  if (currentMode === 'recorded') {
+    const runId = speechRunId;
+    currentMode = '';
+    startOnlineFallback(currentSpeechText, runId);
+    return;
+  }
   if (currentMode === 'audio') {
     currentMode = '';
     setVoiceStatus('Online narration could not load. The voice service may be unavailable in this WebView.', 'error');
@@ -239,6 +251,28 @@ function startOnlineFallback(text, runId) {
 function speakText(text) {
   const cleanText = String(text || '').trim();
   if (!cleanText) return;
+
+  // Stories use the included recorded MP3 files first. Other lessons keep the original voice engine.
+  const storyIndex = Array.isArray(kidStories) ? kidStories.findIndex(st => cleanText.startsWith(st.title)) : -1;
+  if (storyIndex >= 0) {
+    stopKidAudio();
+    const runId = speechRunId;
+    currentSpeechText = cleanText;
+    currentMode = 'recorded';
+    voiceAudio.src = 'audio/story' + (storyIndex + 1) + '.mp3';
+    voiceAudio.load();
+    setVoiceStatus('Playing recorded story narration…', 'playing');
+    const recordedPlay = voiceAudio.play();
+    if (recordedPlay && typeof recordedPlay.catch === 'function') {
+      recordedPlay.catch(() => {
+        if (runId !== speechRunId) return;
+        currentMode = '';
+        startOnlineFallback(cleanText, runId);
+      });
+    }
+    return;
+  }
+
   stopKidAudio();
   const runId = speechRunId;
   setVoiceStatus('Preparing voice…', 'playing');
