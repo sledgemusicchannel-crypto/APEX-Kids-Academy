@@ -397,6 +397,10 @@ function testVoice() {
   speakText('Hello children! Welcome to APEX Kids Academy. Let us learn letters, numbers and stories together.');
 }
 function checkVoice() {
+  const responsiveAvailable =
+    !!window.responsiveVoice &&
+    typeof window.responsiveVoice.speak === 'function';
+
   const speechAvailable =
     ('speechSynthesis' in window &&
     typeof SpeechSynthesisUtterance !== 'undefined');
@@ -404,47 +408,41 @@ function checkVoice() {
   const audioAvailable =
     !!voiceAudio && typeof voiceAudio.play === 'function';
 
-  if (!speechAvailable) {
+  if (responsiveAvailable) {
     setVoiceStatus(
-      'Device speech synthesis is not available in this WebView.',
-      'error'
+      'ResponsiveVoice detected. Online lesson narration is available. Recorded story audio: ' +
+      (audioAvailable ? 'Available.' : 'Unavailable.'),
+      'success'
     );
     return;
   }
 
-  const voices = window.speechSynthesis.getVoices();
+  if (speechAvailable) {
+    const voices = window.speechSynthesis.getVoices();
+    const englishVoices = voices.filter(v =>
+      v.lang.toLowerCase().startsWith('en')
+    );
 
-  if (voices.length === 0) {
     setVoiceStatus(
-      'Speech engine detected, but no device voices are available yet. Checking again shortly…',
+      `Device speech detected. Total voices: ${voices.length}. English voices: ${englishVoices.length}. Online ResponsiveVoice: Not detected yet. HTML audio: ${audioAvailable ? 'Available' : 'Unavailable'}.`,
+      'success'
+    );
+    return;
+  }
+
+  if (audioAvailable) {
+    setVoiceStatus(
+      'Device speech unavailable. Checking online voice engine. Recorded audio is available.',
       'playing'
     );
-
-    setTimeout(() => {
-      const updatedVoices = window.speechSynthesis.getVoices();
-      const englishVoices = updatedVoices.filter(v =>
-        v.lang.toLowerCase().startsWith('en')
-      );
-
-      setVoiceStatus(
-        `Speech engine detected. Total voices: ${updatedVoices.length}. English voices: ${englishVoices.length}. HTML audio: ${audioAvailable ? 'Available' : 'Unavailable'}.`,
-        englishVoices.length ? 'success' : 'error'
-      );
-    }, 2000);
-
     return;
   }
 
-  const englishVoices = voices.filter(v =>
-    v.lang.toLowerCase().startsWith('en')
-  );
-
   setVoiceStatus(
-    `Total device voices: ${voices.length}. English voices: ${englishVoices.length}. HTML audio: ${audioAvailable ? 'Available' : 'Unavailable'}.`,
-    englishVoices.length ? 'success' : 'error'
+    'No voice engine or audio playback is currently available. Check your internet connection.',
+    'error'
   );
 }
-
 const tabStyles = {
   abc:'kid-btn bg-pink-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
   math:'kid-btn bg-sky-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
