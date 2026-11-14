@@ -2,873 +2,443 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0f172a">
-<meta name="description" content="APEX Kids Academy - Interactive phonics, mathematics, educational stories and handwriting practice.">
-<title>APEX Kids Academy | Kindergarten & Primary Learning</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-<style>
-* { box-sizing:border-box; }
-body {
-  -webkit-tap-highlight-color:transparent;
-  background:linear-gradient(135deg,#1e1b4b 0%,#0f172a 100%);
-  color:#fff;
-  user-select:none;
-  -webkit-user-select:none;
-}
-.kid-card {
-  background:rgba(30,41,59,.85);
-  border:2px solid rgba(56,189,248,.3);
-  border-radius:1.5rem;
-}
-.kid-btn { transition:transform .1s ease; }
-.kid-btn:active { transform:scale(.95); }
-canvas { touch-action:none; display:block; }
-button { cursor:pointer; }
-.voice-status {
-  font-size:11px;
-  padding:10px;
-  border-radius:12px;
-  text-align:center;
-  font-weight:700;
-}
-.voice-ready { background:#064e3b; color:#a7f3d0; }
-.voice-warning { background:#78350f; color:#fde68a; }
-.voice-speaking { background:#164e63; color:#bae6fd; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>APEX Kids Academy | Kindergarten & Primary Learning</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { -webkit-tap-highlight-color: transparent; background: linear-gradient(135deg,#1e1b4b 0%,#0f172a 100%); color:#fff; user-select:none; }
+    .kid-card { background:rgba(30,41,59,.92); border:2px solid rgba(56,189,248,.3); border-radius:1.5rem; }
+    .kid-btn { transition:transform .1s ease; touch-action:manipulation; }
+    .kid-btn:active { transform:scale(.97); }
+    canvas { touch-action:none; }
+    button { -webkit-appearance:none; }
+    #voiceStatus { min-height:58px; }
+  </style>
 </head>
-
-<body class="min-h-screen flex flex-col font-sans pb-16">
-
-<header class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b-2 border-indigo-500/30 px-4 py-3">
-  <div class="max-w-xl mx-auto flex items-center justify-between">
-    <div class="flex items-center gap-2.5">
-      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 via-pink-500 to-indigo-500 flex items-center justify-center shadow-lg">
-        <i class="fa-solid fa-star text-white text-lg"></i>
-      </div>
-      <div>
-        <h1 class="text-base font-black tracking-wide text-amber-300 leading-none">APEX KIDS</h1>
-        <span class="text-[11px] text-sky-300 font-bold">Kindergarten & Primary</span>
-      </div>
-    </div>
-    <button onclick="openParentalGate()" class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-[11px] font-bold text-gray-300">
-      <i class="fa-solid fa-lock text-amber-400"></i> Parents & Teachers
-    </button>
-  </div>
-</header>
-
-<main class="flex-1 w-full max-w-xl mx-auto p-4 space-y-5">
-
-  <!-- VOICE ENGINE -->
-  <div class="kid-card p-3 space-y-2 border-sky-500/40">
-    <div class="flex justify-between items-center">
-      <span class="text-xs font-black text-sky-300">
-        <i class="fa-solid fa-microphone-lines mr-1"></i>
-        EDUCATIONAL VOICE ENGINE
-      </span>
-      <span id="voiceIndicator" class="text-[10px] font-bold text-amber-300">Checking...</span>
-    </div>
-
-    <div id="voiceStatus" class="voice-status voice-warning">
-      Checking available narration services...
-    </div>
-
-    <div class="grid grid-cols-2 gap-2">
-      <button onclick="testKidVoice()" class="kid-btn py-3 rounded-xl bg-sky-600 text-white font-black text-xs">
-        <i class="fa-solid fa-play mr-1"></i> Test Voice
-      </button>
-      <button onclick="stopKidAudio()" class="kid-btn py-3 rounded-xl bg-rose-600 text-white font-black text-xs">
-        <i class="fa-solid fa-stop mr-1"></i> Stop Voice
-      </button>
-    </div>
-  </div>
-
-  <!-- NAVIGATION -->
-  <div class="grid grid-cols-4 gap-2">
-    <button onclick="showKidTab('abc')" id="ktab-abc" class="kid-btn bg-pink-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg">
-      <i class="fa-solid fa-font text-lg"></i> ABCs
-    </button>
-    <button onclick="showKidTab('math')" id="ktab-math" class="kid-btn bg-slate-800 text-sky-300 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1">
-      <i class="fa-solid fa-shapes text-lg"></i> 123 & Math
-    </button>
-    <button onclick="showKidTab('stories')" id="ktab-stories" class="kid-btn bg-slate-800 text-emerald-300 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1">
-      <i class="fa-solid fa-book-open-reader text-lg"></i> Stories
-    </button>
-    <button onclick="showKidTab('draw')" id="ktab-draw" class="kid-btn bg-slate-800 text-amber-300 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1">
-      <i class="fa-solid fa-paintbrush text-lg"></i> Trace Pad
-    </button>
-  </div>
-
-  <!-- ABC -->
-  <section id="ksec-abc" class="space-y-4">
-    <div class="kid-card p-5 text-center space-y-3 border-pink-500/40">
-      <span class="px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-black">TAP A LETTER TO HEAR IT!</span>
-      <div id="abcDisplayEmoji" class="text-6xl py-2">🍎</div>
-      <h2 id="abcDisplayWord" class="text-2xl font-black text-white">A is for Apple</h2>
-      <button onclick="repeatCurrentABC()" class="kid-btn px-6 py-3 rounded-2xl bg-emerald-500 text-slate-950 font-black text-sm">
-        <i class="fa-solid fa-volume-high mr-1"></i> Repeat Pronunciation
-      </button>
-    </div>
-    <div id="abcGrid" class="grid grid-cols-4 sm:grid-cols-6 gap-2.5"></div>
-  </section>
-
-  <!-- MATH -->
-  <section id="ksec-math" class="hidden space-y-4">
-    <div class="kid-card p-5 text-center space-y-3 border-sky-500/40">
-      <span class="px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-xs font-black">PRIMARY MATH CHALLENGE</span>
-      <div class="text-2xl text-amber-400">⭐⭐⭐</div>
-      <h2 id="mathQuestion" class="text-3xl font-black text-white py-2">2 + 3 = ?</h2>
-      <button onclick="readMathQuestion()" class="kid-btn px-5 py-2 rounded-xl bg-sky-500 text-slate-950 text-xs font-black">
-        <i class="fa-solid fa-volume-high mr-1"></i> Read Question
-      </button>
-      <div id="mathOptions" class="grid grid-cols-3 gap-3 pt-2"></div>
-      <p id="mathFeedback" class="text-sm font-black text-emerald-400 min-h-5"></p>
-    </div>
-  </section>
-
-  <!-- STORIES -->
-  <section id="ksec-stories" class="hidden space-y-4">
-    <div class="kid-card p-5 space-y-4 border-emerald-500/40">
-      <div class="flex items-center justify-between">
-        <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black">AUDIO STORY TIME</span>
-        <button onclick="stopKidAudio()" class="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold">
-          <i class="fa-solid fa-stop mr-1"></i> Stop
-        </button>
-      </div>
-      <div id="storyList" class="space-y-3"></div>
-    </div>
-  </section>
-
-  <!-- DRAW -->
-  <section id="ksec-draw" class="hidden space-y-3">
-    <div class="kid-card p-4 space-y-3 border-amber-500/40">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-black text-amber-300">
-          <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Draw Letters & Shapes
-        </span>
-        <div class="flex gap-1.5">
-          <button onclick="setBrushColor('#38bdf8')" class="w-6 h-6 rounded-full bg-sky-400 border-2 border-white"></button>
-          <button onclick="setBrushColor('#f472b6')" class="w-6 h-6 rounded-full bg-pink-400 border-2 border-white"></button>
-          <button onclick="setBrushColor('#fbbf24')" class="w-6 h-6 rounded-full bg-amber-400 border-2 border-white"></button>
-          <button onclick="clearKidCanvas()" class="px-2 py-1 rounded-lg bg-rose-600 text-white text-xs font-bold">Clear</button>
+<body class="min-h-screen flex flex-col font-sans pb-20">
+  <header class="sticky top-0 z-30 bg-slate-900/95 border-b-2 border-indigo-500/30 px-4 py-3">
+    <div class="max-w-xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 via-pink-500 to-indigo-500 flex items-center justify-center shadow-lg">
+          <i class="fa-solid fa-star text-white text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-black tracking-wide text-amber-300 leading-none">APEX KIDS</h1>
+          <span class="text-[11px] text-sky-300 font-bold">Kindergarten & Primary</span>
         </div>
       </div>
-      <canvas id="kidCanvas" class="w-full h-64 bg-slate-950 rounded-2xl border-2 border-slate-800"></canvas>
+      <button onclick="openParentalGate()" class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-[11px] font-bold text-gray-300">
+        <i class="fa-solid fa-lock text-amber-400"></i> Parents & Teachers
+      </button>
     </div>
-  </section>
-</main>
+  </header>
 
-<!-- PARENTAL GATE -->
-<div id="parentModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-  <div class="kid-card max-w-md w-full p-6 space-y-4 border-amber-400/50">
-    <div class="flex justify-between items-center">
-      <h3 class="text-base font-black text-amber-300">Adult Verification Gate</h3>
-      <button onclick="closeParentalGate()" class="text-gray-400 font-bold">✕</button>
-    </div>
-    <div id="gateLockView" class="space-y-3">
-      <p class="text-xs text-gray-300">Parents & Teachers: Solve this problem to unlock the guide.</p>
-      <div id="gateMathPrompt" class="text-xl font-black text-center bg-slate-900 py-3 rounded-xl">14 + 19 = ?</div>
-      <input id="gateAnswerInput" type="number" placeholder="Enter answer" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white text-center">
-      <button onclick="verifyParentalGate()" class="w-full py-3 rounded-xl bg-amber-500 text-slate-950 font-black text-xs">UNLOCK ADULT SECTION</button>
-    </div>
-    <div id="gateUnlockedView" class="hidden space-y-3 text-xs text-gray-300">
-      <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-        <p class="font-bold text-white">Classroom & Home Guide</p>
-        <p>• Kindergarten: ABCs and Trace Pad for phonics and handwriting.</p>
-        <p>• Primary: Mathematics and audio stories.</p>
-        <p>• Voice: Internet connection is required for online narration when browser speech is unavailable.</p>
+  <main class="flex-1 w-full max-w-xl mx-auto p-4 space-y-5">
+    <section class="kid-card p-4 space-y-3 border-sky-500/50">
+      <div class="flex items-center justify-between gap-2">
+        <span class="font-black text-sky-300 text-sm"><i class="fa-solid fa-microphone mr-2"></i>EDUCATIONAL VOICE ENGINE</span>
+        <button onclick="checkVoice()" class="text-amber-300 text-xs font-black underline">Voice Check</button>
       </div>
-      <button onclick="closeParentalGate()" class="w-full py-3 rounded-xl bg-indigo-600 text-white font-bold">Return to Kids Mode</button>
+      <div id="voiceStatus" role="status" aria-live="polite" class="rounded-2xl bg-slate-800 px-3 py-3 text-center text-sm font-bold text-amber-200 flex items-center justify-center">
+        Ready. Tap Test Voice to hear a spoken greeting.
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="testVoice()" class="kid-btn rounded-2xl bg-sky-600 py-4 font-black text-base text-white">
+          <i class="fa-solid fa-play mr-2"></i>Test Voice
+        </button>
+        <button onclick="stopKidAudio()" class="kid-btn rounded-2xl bg-rose-600 py-4 font-black text-base text-white">
+          <i class="fa-solid fa-stop mr-2"></i>Stop Voice
+        </button>
+      </div>
+      <p class="text-[10px] leading-relaxed text-slate-400">Voice requires an internet connection when your Android WebView does not provide a built-in speech voice. Keep media volume turned up.</p>
+    </section>
+
+    <div class="grid grid-cols-4 gap-2">
+      <button onclick="showKidTab('abc')" id="ktab-abc" class="kid-btn bg-pink-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg"><i class="fa-solid fa-font text-lg"></i>ABCs</button>
+      <button onclick="showKidTab('math')" id="ktab-math" class="kid-btn bg-slate-800 text-sky-300 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1"><i class="fa-solid fa-shapes text-lg"></i>123 & Math</button>
+      <button onclick="showKidTab('stories')" id="ktab-stories" class="kid-btn bg-slate-800 text-emerald-300 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1"><i class="fa-solid fa-book-open-reader text-lg"></i>Stories</button>
+      <button onclick="showKidTab('draw')" id="ktab-draw" class="kid-btn bg-slate-800 text-amber-300 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1"><i class="fa-solid fa-paintbrush text-lg"></i>Trace Pad</button>
+    </div>
+
+    <section id="ksec-abc" class="space-y-4">
+      <div class="kid-card p-5 text-center space-y-3 border-pink-500/40">
+        <span class="px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-black">TAP A LETTER TO HEAR IT!</span>
+        <div id="abcDisplayEmoji" class="text-6xl py-2">🍎</div>
+        <h2 id="abcDisplayWord" class="text-2xl font-black text-white">A is for Apple</h2>
+        <button onclick="speakText(document.getElementById('abcDisplayWord').textContent)" class="kid-btn px-6 py-3 rounded-2xl bg-emerald-500 text-slate-950 font-black text-sm shadow-lg">
+          <i class="fa-solid fa-volume-high mr-1.5"></i> Repeat Voice
+        </button>
+      </div>
+      <div id="abcGrid" class="grid grid-cols-4 sm:grid-cols-6 gap-2.5"></div>
+    </section>
+
+    <section id="ksec-math" class="hidden space-y-4">
+      <div class="kid-card p-5 text-center space-y-3 border-sky-500/40">
+        <span class="px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-xs font-black">PRIMARY MATH CHALLENGE</span>
+        <div id="mathStars" class="text-2xl tracking-widest text-amber-400">⭐⭐⭐</div>
+        <h2 id="mathQuestion" class="text-3xl font-black text-white py-2">2 + 3 = ?</h2>
+        <div id="mathOptions" class="grid grid-cols-3 gap-3 pt-2"></div>
+        <p id="mathFeedback" class="text-sm font-black text-emerald-400 min-h-6"></p>
+        <button onclick="speakText(document.getElementById('mathQuestion').textContent)" class="kid-btn px-5 py-2 rounded-xl bg-sky-600 text-white text-sm font-bold"><i class="fa-solid fa-volume-high mr-1"></i>Read Question</button>
+      </div>
+    </section>
+
+    <section id="ksec-stories" class="hidden space-y-4">
+      <div class="kid-card p-5 space-y-4 border-emerald-500/40">
+        <div class="flex items-center justify-between">
+          <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black">AUDIO STORY TIME</span>
+          <button onclick="stopKidAudio()" class="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold"><i class="fa-solid fa-stop mr-1"></i>Stop</button>
+        </div>
+        <div id="storyList" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <section id="ksec-draw" class="hidden space-y-3">
+      <div class="kid-card p-4 space-y-3 border-amber-500/40">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <span class="text-sm font-black text-amber-300"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Draw Letters & Shapes</span>
+          <div class="flex gap-2 items-center">
+            <button aria-label="Blue brush" onclick="setBrushColor('#38bdf8')" class="w-7 h-7 rounded-full bg-sky-400 border-2 border-white"></button>
+            <button aria-label="Pink brush" onclick="setBrushColor('#f472b6')" class="w-7 h-7 rounded-full bg-pink-400 border-2 border-white"></button>
+            <button aria-label="Yellow brush" onclick="setBrushColor('#fbbf24')" class="w-7 h-7 rounded-full bg-amber-400 border-2 border-white"></button>
+            <button onclick="clearKidCanvas()" class="px-3 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold">Clear</button>
+          </div>
+        </div>
+        <canvas id="kidCanvas" class="w-full h-64 bg-slate-950 rounded-2xl border-2 border-slate-800"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <div id="parentModal" class="hidden fixed inset-0 z-50 bg-slate-950/95 flex items-center justify-center p-4">
+    <div class="kid-card max-w-md w-full p-6 space-y-4 border-amber-400/50">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-black text-amber-300"><i class="fa-solid fa-shield-halved mr-1.5"></i>Adult Verification Gate</h3>
+        <button onclick="closeParentalGate()" class="text-gray-400 text-lg font-bold">✕</button>
+      </div>
+      <div id="gateLockView" class="space-y-3">
+        <p class="text-xs text-gray-300">Parents & Teachers: solve this problem to unlock the guide.</p>
+        <div id="gateMathPrompt" class="text-xl font-black text-center bg-slate-900 py-3 rounded-xl">14 + 19 = ?</div>
+        <input id="gateAnswerInput" type="number" inputmode="numeric" placeholder="Enter answer" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white text-center font-bold">
+        <button onclick="verifyParentalGate()" class="w-full py-3 rounded-xl bg-amber-500 text-slate-950 font-black text-xs">UNLOCK ADULT SECTION</button>
+      </div>
+      <div id="gateUnlockedView" class="hidden space-y-3 text-xs text-gray-300">
+        <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+          <p class="font-bold text-white">Classroom & Home Guide</p>
+          <p>• Kindergarten: use ABCs and Trace Pad for phonics and letter practice.</p>
+          <p>• Primary: use 123 Math and Audio Stories for reading and arithmetic.</p>
+          <p>• Child privacy: this page does not request children's personal information.</p>
+        </div>
+        <button onclick="closeParentalGate()" class="w-full py-3 rounded-xl bg-indigo-600 text-white font-bold">Return to Kids Mode</button>
+      </div>
     </div>
   </div>
-</div>
 
-<footer class="fixed bottom-0 inset-x-0 bg-slate-900/95 border-t border-slate-800 py-2 text-center text-[10px] text-gray-400">
-  APEX KIDS ACADEMY · Child-Safe Learning Edition · APEX MOBILITY SYSTEM
-</footer>
+  <footer class="fixed bottom-0 inset-x-0 bg-slate-900/95 border-t border-slate-800 py-3 text-center text-[10px] text-gray-400 z-20">
+    APEX KIDS ACADEMY · Child-Safe Learning Edition · APEX MOBILITY SYSTEM
+  </footer>
+
+  <audio id="voiceAudio" preload="none" playsinline></audio>
 
 <script>
-// ======================================================
-// APEX KIDS VOICE ENGINE
-// Browser TTS + ONLINE AUDIO FALLBACK
-// ======================================================
-
-const hasBrowserSpeech =
-  'speechSynthesis' in window &&
-  typeof window.SpeechSynthesisUtterance !== 'undefined';
-
-const browserSpeech = hasBrowserSpeech ? window.speechSynthesis : null;
-
-const onlineAudio = new Audio();
-onlineAudio.preload = 'auto';
-onlineAudio.setAttribute('playsinline', '');
-onlineAudio.volume = 1;
-
-let speechGeneration = 0;
-let browserVoices = [];
-let speechQueue = [];
-let speechIndex = 0;
+/* APEX Kids Academy voice engine.
+   First choice: device/browser SpeechSynthesis.
+   Fallback: Google Translate's public TTS endpoint, requiring internet.
+   The fallback is best-effort and is not an official guaranteed production API. */
+const voiceAudio = document.getElementById('voiceAudio');
+const voiceStatus = document.getElementById('voiceStatus');
+let speechWatchdog = null;
+let speechRunId = 0;
+let audioChunks = [];
+let audioChunkIndex = 0;
 let currentMode = '';
-let currentABCText = 'The letter A. A is for Apple.';
-let mathA = 2;
-let mathB = 3;
-let currentMathAns = 5;
-let mathTimer = null;
+let currentUtterance = null;
 
-const statusBox = document.getElementById('voiceStatus');
-const indicator = document.getElementById('voiceIndicator');
-
-function voiceStatus(message, type) {
-  statusBox.textContent = message;
-  statusBox.className = 'voice-status ' +
-    (type === 'ready' ? 'voice-ready' :
-     type === 'speaking' ? 'voice-speaking' :
-     'voice-warning');
-
-  indicator.textContent =
-    type === 'ready' ? 'Voice Ready' :
-    type === 'speaking' ? 'Speaking...' :
-    'Voice Check';
+function setVoiceStatus(message, type='info') {
+  voiceStatus.textContent = message;
+  voiceStatus.className = 'rounded-2xl px-3 py-3 text-center text-sm font-bold flex items-center justify-center ' +
+    (type === 'error' ? 'bg-rose-950 text-rose-200' :
+     type === 'success' ? 'bg-emerald-950 text-emerald-200' :
+     type === 'playing' ? 'bg-sky-950 text-sky-200' :
+     'bg-slate-800 text-amber-200');
 }
-
-function loadVoices() {
-  if (!browserSpeech) return [];
-  try {
-    browserVoices = browserSpeech.getVoices() || [];
-  } catch (e) {
-    browserVoices = [];
-  }
-  return browserVoices;
-}
-
-function getEnglishVoice() {
-  const voices = loadVoices();
-  return voices.find(v => /^en-US/i.test(v.lang)) ||
-         voices.find(v => /^en-GB/i.test(v.lang)) ||
-         voices.find(v => /^en/i.test(v.lang)) ||
-         voices[0] || null;
-}
-
-function splitText(text, maxLength = 150) {
-  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
-  const result = [];
-
-  sentences.forEach(sentence => {
-    const words = sentence.trim().split(/\s+/);
-    let part = '';
-
-    words.forEach(word => {
-      const candidate = part ? part + ' ' + word : word;
-
-      if (candidate.length > maxLength && part) {
-        result.push(part);
-        part = word;
-      } else {
-        part = candidate;
-      }
-    });
-
-    if (part) result.push(part);
-  });
-
-  return result;
-}
-
 function stopKidAudio() {
-  speechGeneration++;
-
-  speechQueue = [];
-  speechIndex = 0;
+  speechRunId++;
+  if (speechWatchdog) clearTimeout(speechWatchdog);
+  speechWatchdog = null;
+  try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch(e) {}
+  try { voiceAudio.pause(); voiceAudio.removeAttribute('src'); voiceAudio.load(); } catch(e) {}
+  audioChunks = [];
+  audioChunkIndex = 0;
   currentMode = '';
-
-  if (browserSpeech) {
-    try {
-      browserSpeech.cancel();
-    } catch(e) {}
+  currentUtterance = null;
+  setVoiceStatus('Voice stopped. Tap a lesson or Test Voice to listen again.');
+}
+function splitForSpeech(text, maxLength=170) {
+  const words = String(text).trim().split(/\s+/);
+  const chunks = [];
+  let part = '';
+  for (const word of words) {
+    const next = part ? part + ' ' + word : word;
+    if (next.length > maxLength && part) { chunks.push(part); part = word; }
+    else part = next;
   }
-
-  onlineAudio.pause();
-
-  try {
-    onlineAudio.currentTime = 0;
-  } catch(e) {}
-
-  voiceStatus('Narration stopped. Tap a lesson to listen again.', 'ready');
+  if (part) chunks.push(part);
+  return chunks;
 }
-
-// Online audio fallback.
-// This uses Google's publicly accessible web translation
-// speech endpoint, not an official guaranteed TTS API.
-function playOnlineSpeech(text, generation) {
-
-  if (generation !== speechGeneration) return;
-
-  const chunks = splitText(text, 150);
-
-  speechQueue = chunks;
-  speechIndex = 0;
-  currentMode = 'online';
-
-  playNextOnlineChunk(generation);
+function onlineSpeechUrl(text) {
+  const params = new URLSearchParams({ie:'UTF-8', client:'tw-ob', tl:'en-US', q:text});
+  return 'https://translate.google.com/translate_tts?' + params.toString();
 }
-
-function playNextOnlineChunk(generation) {
-
-  if (generation !== speechGeneration) return;
-
-  if (speechIndex >= speechQueue.length) {
+function playOnlineChunk(runId) {
+  if (runId !== speechRunId) return;
+  if (audioChunkIndex >= audioChunks.length) {
     currentMode = '';
-    voiceStatus('Narration completed.', 'ready');
+    setVoiceStatus('Narration finished. Tap again to replay.', 'success');
     return;
   }
-
-  const text = speechQueue[speechIndex];
-
-  const url =
-    'https://translate.google.com/translate_tts' +
-    '?ie=UTF-8&client=tw-ob&tl=en&q=' +
-    encodeURIComponent(text);
-
-  onlineAudio.onended = function() {
-    if (generation !== speechGeneration) return;
-    speechIndex++;
-    playNextOnlineChunk(generation);
-  };
-
-  onlineAudio.onerror = function() {
-    if (generation !== speechGeneration) return;
-
-    currentMode = '';
-
-    voiceStatus(
-      'Online voice could not load. Check your internet connection or the voice service.',
-      'warning'
-    );
-
-    console.error('Online narration audio failed.');
-  };
-
-  onlineAudio.src = url;
-
-  voiceStatus('Loading spoken English narration...', 'speaking');
-
-  onlineAudio.play().then(function() {
-    if (generation === speechGeneration) {
-      voiceStatus('Playing spoken English narration...', 'speaking');
-    }
-  }).catch(function(error) {
-
-    if (generation !== speechGeneration) return;
-
-    currentMode = '';
-
-    voiceStatus(
-      'Audio playback blocked or unavailable. Tap Test Voice again and check internet access.',
-      'warning'
-    );
-
-    console.error('Online audio playback error:', error);
-
-  });
-}
-
-// Browser TTS is used when the WebView actually supports it.
-function playBrowserSpeech(text, generation) {
-
-  if (!browserSpeech) {
-    playOnlineSpeech(text, generation);
-    return;
-  }
-
-  currentMode = 'browser';
-
-  const chunks = splitText(text, 180);
-  let index = 0;
-
-  browserSpeech.cancel();
-
-  function next() {
-
-    if (generation !== speechGeneration) return;
-
-    if (index >= chunks.length) {
+  const chunk = audioChunks[audioChunkIndex];
+  voiceAudio.src = onlineSpeechUrl(chunk);
+  voiceAudio.load();
+  setVoiceStatus('Playing spoken narration…', 'playing');
+  const playPromise = voiceAudio.play();
+  if (playPromise && typeof playPromise.then === 'function') {
+    playPromise.then(() => {
+      if (runId === speechRunId) currentMode = 'audio';
+    }).catch(err => {
+      if (runId !== speechRunId) return;
       currentMode = '';
-      voiceStatus('Narration completed.', 'ready');
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(chunks[index]);
-    const voice = getEnglishVoice();
-
-    utterance.lang = voice ? voice.lang : 'en-US';
-    utterance.rate = 0.88;
-    utterance.pitch = 1.08;
-    utterance.volume = 1;
-
-    if (voice) utterance.voice = voice;
-
-    utterance.onstart = function() {
-      if (generation === speechGeneration) {
-        voiceStatus('Speaking educational lesson...', 'speaking');
-      }
-    };
-
-    utterance.onend = function() {
-      if (generation !== speechGeneration) return;
-      index++;
-      setTimeout(next, 100);
-    };
-
-    utterance.onerror = function(event) {
-      if (generation !== speechGeneration) return;
-
-      console.error('Browser speech error:', event.error);
-
-      // Retry with online audio when browser TTS fails.
-      browserSpeech.cancel();
-      playOnlineSpeech(text, generation);
-    };
-
-    try {
-      browserSpeech.speak(utterance);
-    } catch(error) {
-      console.error(error);
-      playOnlineSpeech(text, generation);
-    }
+      setVoiceStatus('Audio playback was blocked or the voice service could not be reached. Check WebIntoApp WebView media playback and internet access.', 'error');
+    });
   }
-
-  next();
 }
-
+voiceAudio.addEventListener('ended', () => {
+  if (currentMode !== 'audio') return;
+  audioChunkIndex++;
+  playOnlineChunk(speechRunId);
+});
+voiceAudio.addEventListener('error', () => {
+  if (currentMode === 'audio') {
+    currentMode = '';
+    setVoiceStatus('Online narration could not load. The voice service may be unavailable in this WebView.', 'error');
+  }
+});
+function startOnlineFallback(text, runId) {
+  if (runId !== speechRunId) return;
+  if (!navigator.onLine) {
+    setVoiceStatus('No internet connection. Connect to Wi-Fi to use online narration.', 'error');
+    return;
+  }
+  audioChunks = splitForSpeech(text);
+  audioChunkIndex = 0;
+  currentMode = 'audio';
+  playOnlineChunk(runId);
+}
 function speakText(text) {
-
-  if (!text || !String(text).trim()) return;
-
+  const cleanText = String(text || '').trim();
+  if (!cleanText) return;
   stopKidAudio();
+  const runId = speechRunId;
+  setVoiceStatus('Preparing voice…', 'playing');
 
-  const generation = speechGeneration;
-
-  const cleanText = String(text).trim();
-
-  // The screenshot shows this WebView does not support
-  // speechSynthesis, so use online spoken audio directly.
-  if (!hasBrowserSpeech) {
-    playOnlineSpeech(cleanText, generation);
+  if ('speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined') {
+    try {
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      currentUtterance = utterance;
+      utterance.lang = 'en-US';
+      utterance.rate = 0.88;
+      utterance.pitch = 1.08;
+      utterance.volume = 1;
+      utterance.onstart = () => {
+        if (runId !== speechRunId) return;
+        currentMode = 'speech';
+        if (speechWatchdog) clearTimeout(speechWatchdog);
+        setVoiceStatus('Speaking with your device voice…', 'playing');
+      };
+      utterance.onend = () => {
+        if (runId !== speechRunId) return;
+        if (speechWatchdog) clearTimeout(speechWatchdog);
+        currentMode = '';
+        setVoiceStatus('Narration finished. Tap again to replay.', 'success');
+      };
+      utterance.onerror = () => {
+        if (runId !== speechRunId) return;
+        if (speechWatchdog) clearTimeout(speechWatchdog);
+        startOnlineFallback(cleanText, runId);
+      };
+      speechWatchdog = setTimeout(() => {
+        if (runId !== speechRunId || currentMode === 'speech') return;
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+        startOnlineFallback(cleanText, runId);
+      }, 5000);
+      window.speechSynthesis.speak(utterance);
+      return;
+    } catch(e) {
+      // Continue to the HTML audio fallback.
+    }
+  }
+  startOnlineFallback(cleanText, runId);
+}
+function testVoice() {
+  speakText('Hello children! Welcome to APEX Kids Academy. Let us learn letters, numbers and stories together.');
+}
+function checkVoice() {
+  const speechAvailable = ('speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined');
+  const audioAvailable = !!voiceAudio && typeof voiceAudio.play === 'function';
+  if (!navigator.onLine) {
+    setVoiceStatus('Internet appears offline. Online narration needs an internet connection.', 'error');
+  } else if (speechAvailable && audioAvailable) {
+    setVoiceStatus('Browser speech and HTML audio are detected. Tap Test Voice to test actual playback.', 'success');
+  } else if (audioAvailable) {
+    setVoiceStatus('HTML audio is available. Online narration will be used. Tap Test Voice.', 'success');
   } else {
-    playBrowserSpeech(cleanText, generation);
+    setVoiceStatus('This WebView does not expose a supported speech or audio playback interface.', 'error');
   }
 }
 
-function testKidVoice() {
-  speakText(
-    'Hello children! Welcome to APEX Kids Academy. Let us learn our alphabet, count numbers and enjoy wonderful stories together!'
-  );
-}
-
-function initializeVoice() {
-  if (hasBrowserSpeech) {
-    loadVoices();
-    voiceStatus(
-      'Browser speech is available. Tap Test Voice to check it.',
-      'ready'
-    );
-  } else {
-    voiceStatus(
-      'Browser speech unavailable. Online spoken narration fallback is enabled. Internet required.',
-      'warning'
-    );
-  }
-}
-
-if (browserSpeech) {
-  browserSpeech.onvoiceschanged = loadVoices;
-}
-
-initializeVoice();
-
-// ======================================================
-// NAVIGATION
-// ======================================================
-
+const tabStyles = {
+  abc:'kid-btn bg-pink-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
+  math:'kid-btn bg-sky-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
+  stories:'kid-btn bg-emerald-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
+  draw:'kid-btn bg-amber-500 text-slate-950 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg'
+};
+const defaultTabColors = {abc:'text-pink-300',math:'text-sky-300',stories:'text-emerald-300',draw:'text-amber-300'};
 function showKidTab(tab) {
-
   stopKidAudio();
-
-  const styles = {
-    abc:'kid-btn bg-pink-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
-    math:'kid-btn bg-sky-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
-    stories:'kid-btn bg-emerald-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
-    draw:'kid-btn bg-amber-500 text-slate-950 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg'
-  };
-
-  const colors = {
-    abc:'text-pink-300',
-    math:'text-sky-300',
-    stories:'text-emerald-300',
-    draw:'text-amber-300'
-  };
-
   ['abc','math','stories','draw'].forEach(t => {
-    document.getElementById('ksec-' + t).classList.toggle('hidden',t !== tab);
-
-    document.getElementById('ktab-' + t).className =
-      t === tab ? styles[t] :
-      `kid-btn bg-slate-800 ${colors[t]} py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1`;
+    document.getElementById('ksec-'+t).classList.toggle('hidden',t!==tab);
+    document.getElementById('ktab-'+t).className = t===tab ? tabStyles[t] :
+      `kid-btn bg-slate-800 ${defaultTabColors[t]} py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1`;
   });
-
-  if (tab === 'draw') resizeKidCanvas();
-
-  if (tab === 'math') {
-    readMathQuestion();
-  }
+  if (tab==='draw') resizeKidCanvas();
 }
-
-// ======================================================
-// ABC PHONICS
-// ======================================================
 
 const abcData = [
-  {l:'A',w:'Apple',e:'🍎'},
-  {l:'B',w:'Bear',e:'🐻'},
-  {l:'C',w:'Cat',e:'🐱'},
-  {l:'D',w:'Dog',e:'🐶'},
-  {l:'E',w:'Elephant',e:'🐘'},
-  {l:'F',w:'Fish',e:'🐠'},
-  {l:'G',w:'Giraffe',e:'🦒'},
-  {l:'H',w:'House',e:'🏠'},
-  {l:'I',w:'Ice Cream',e:'🍦'},
-  {l:'J',w:'Juice',e:'🧃'},
-  {l:'K',w:'Kite',e:'🪁'},
-  {l:'L',w:'Lion',e:'🦁'},
-  {l:'M',w:'Moon',e:'🌙'},
-  {l:'N',w:'Nest',e:'🪺'},
-  {l:'O',w:'Owl',e:'🦉'},
-  {l:'P',w:'Penguin',e:'🐧'},
-  {l:'Q',w:'Queen',e:'👑'},
-  {l:'R',w:'Rainbow',e:'🌈'},
-  {l:'S',w:'Sun',e:'☀️'},
-  {l:'T',w:'Tiger',e:'🐯'},
-  {l:'U',w:'Umbrella',e:'☂️'},
-  {l:'V',w:'Violin',e:'🎻'},
-  {l:'W',w:'Whale',e:'🐳'},
-  {l:'X',w:'Xylophone',e:'🎵'},
-  {l:'Y',w:'Yak',e:'🐂'},
-  {l:'Z',w:'Zebra',e:'🦓'}
+  {l:'A',w:'Apple',e:'🍎'},{l:'B',w:'Bear',e:'🐻'},{l:'C',w:'Cat',e:'🐱'},
+  {l:'D',w:'Dog',e:'🐶'},{l:'E',w:'Elephant',e:'🐘'},{l:'F',w:'Fish',e:'🐠'},
+  {l:'G',w:'Giraffe',e:'🦒'},{l:'H',w:'House',e:'🏠'},{l:'I',w:'Ice Cream',e:'🍦'},
+  {l:'J',w:'Juice',e:'🧃'},{l:'K',w:'Kite',e:'🪁'},{l:'L',w:'Lion',e:'🦁'},
+  {l:'M',w:'Moon',e:'🌙'},{l:'N',w:'Nest',e:'🪺'},{l:'O',w:'Owl',e:'🦉'},
+  {l:'P',w:'Penguin',e:'🐧'},{l:'Q',w:'Queen',e:'👑'},{l:'R',w:'Rainbow',e:'🌈'},
+  {l:'S',w:'Sun',e:'☀️'},{l:'T',w:'Tiger',e:'🐯'},{l:'U',w:'Umbrella',e:'☂️'},
+  {l:'V',w:'Violin',e:'🎻'},{l:'W',w:'Whale',e:'🐳'},{l:'X',w:'Xylophone',e:'🎼'},
+  {l:'Y',w:'Yo-yo',e:'🪀'},{l:'Z',w:'Zebra',e:'🦓'}
 ];
-
 const abcGrid = document.getElementById('abcGrid');
-
 abcData.forEach(item => {
-
   const btn = document.createElement('button');
-  btn.className = 'kid-btn kid-card p-3 flex flex-col items-center justify-center hover:border-pink-400';
-
-  const letter = document.createElement('span');
-  letter.className = 'text-xl font-black text-white';
-  letter.textContent = item.l;
-
-  const emoji = document.createElement('span');
-  emoji.className = 'text-lg';
-  emoji.textContent = item.e;
-
-  btn.append(letter,emoji);
-
-  btn.addEventListener('click',function() {
-
-    document.getElementById('abcDisplayEmoji').textContent = item.e;
-
-    const phrase = `${item.l} is for ${item.w}`;
-
-    document.getElementById('abcDisplayWord').textContent = phrase;
-
-    currentABCText =
-      `The letter ${item.l}. ${item.l} is for ${item.w}.`;
-
-    speakText(currentABCText);
-
-  });
-
+  btn.className='kid-btn kid-card p-3 flex flex-col items-center justify-center hover:border-pink-400';
+  btn.innerHTML=`<span class="text-xl font-black text-white">${item.l}</span><span class="text-lg">${item.e}</span>`;
+  btn.setAttribute('aria-label',`Hear ${item.l} is for ${item.w}`);
+  btn.onclick=()=>{
+    const phrase=`${item.l}. ${item.l} is for ${item.w}.`;
+    document.getElementById('abcDisplayEmoji').textContent=item.e;
+    document.getElementById('abcDisplayWord').textContent=`${item.l} is for ${item.w}`;
+    speakText(phrase);
+  };
   abcGrid.appendChild(btn);
-
 });
 
-function repeatCurrentABC() {
-  speakText(currentABCText);
-}
-
-// ======================================================
-// MATHEMATICS
-// ======================================================
-
-function numberWords(n) {
-  const words = [
-    'zero','one','two','three','four','five','six','seven',
-    'eight','nine','ten','eleven','twelve','thirteen',
-    'fourteen','fifteen','sixteen','seventeen','eighteen'
-  ];
-  return words[n] || String(n);
-}
-
-function readMathQuestion() {
-  speakText(
-    `Let's solve this together. ${numberWords(mathA)} plus ${numberWords(mathB)} equals what?`
-  );
-}
-
+let currentMathAns=5;
 function newMathQuestion() {
-
-  if (mathTimer) clearTimeout(mathTimer);
-
-  mathA = Math.floor(Math.random()*9)+1;
-  mathB = Math.floor(Math.random()*9)+1;
-  currentMathAns = mathA + mathB;
-
-  document.getElementById('mathQuestion').textContent =
-    `${mathA} + ${mathB} = ?`;
-
-  document.getElementById('mathFeedback').textContent = '';
-
-  const options = new Set([currentMathAns]);
-
-  while (options.size < 3) {
-    options.add(Math.floor(Math.random()*18)+1);
-  }
-
-  const box = document.getElementById('mathOptions');
-  box.innerHTML = '';
-
-  Array.from(options).sort(() => Math.random()-.5).forEach(num => {
-
-    const btn = document.createElement('button');
-
-    btn.className =
-      'kid-btn py-4 rounded-2xl bg-slate-900 border-2 border-sky-500/40 text-2xl font-black text-white hover:bg-sky-600';
-
-    btn.textContent = num;
-
-    btn.onclick = function() {
-
-      if (num === currentMathAns) {
-
-        document.getElementById('mathFeedback').textContent =
-          '🎉 Great Job! Correct!';
-
-        speakText(
-          `Excellent! ${numberWords(mathA)} plus ${numberWords(mathB)} equals ${numberWords(currentMathAns)}. Well done!`
-        );
-
-        mathTimer = setTimeout(() => {
-          if (!document.getElementById('ksec-math').classList.contains('hidden')) {
-            newMathQuestion();
-            speakText(
-              `Here is your next question. ${numberWords(mathA)} plus ${numberWords(mathB)} equals what?`
-            );
-          }
-        },4500);
-
+  const a=Math.floor(Math.random()*9)+1;
+  const b=Math.floor(Math.random()*9)+1;
+  currentMathAns=a+b;
+  document.getElementById('mathQuestion').textContent=`${a} plus ${b} equals what?`;
+  document.getElementById('mathFeedback').textContent='';
+  const opts=new Set([currentMathAns]);
+  while(opts.size<3) opts.add(Math.floor(Math.random()*18)+1);
+  const shuffled=Array.from(opts).sort(()=>Math.random()-.5);
+  const box=document.getElementById('mathOptions');
+  box.innerHTML='';
+  shuffled.forEach(num=>{
+    const el=document.createElement('button');
+    el.className='kid-btn py-4 rounded-2xl bg-slate-900 border-2 border-sky-500/40 text-2xl font-black text-white hover:bg-sky-600';
+    el.textContent=num;
+    el.onclick=()=>{
+      if(num===currentMathAns) {
+        document.getElementById('mathFeedback').textContent='🎉 Great Job! Correct!';
+        speakText(`Great job! ${a} plus ${b} equals ${currentMathAns}.`);
+        setTimeout(newMathQuestion,3500);
       } else {
-
-        document.getElementById('mathFeedback').textContent =
-          'Try again! You can do it!';
-
+        document.getElementById('mathFeedback').textContent='Try again! You can do it!';
         speakText('Not quite. Try again! You can do it!');
-
       }
     };
-
-    box.appendChild(btn);
+    box.appendChild(el);
   });
 }
 
-// ======================================================
-// EDUCATIONAL STORIES
-// ======================================================
-
-const kidStories = [
-  {
-    title:'The Little Star Who Shone Bright',
-    emoji:'🌟',
-    text:'Once upon a time, a tiny star lived high in the night sky. Even though she was small, she practiced shining every evening until she helped guide a lost little boat safely home.'
-  },
-  {
-    title:'Benny the Helpful Honeybee',
-    emoji:'🐝',
-    text:'Benny the bee loved visiting bright yellow sunflowers. By sharing pollen from flower to flower, Benny helped the whole garden grow colorful and strong.'
-  },
-  {
-    title:'The Curious Little Turtle',
-    emoji:'🐢',
-    text:'Timmy the turtle walked slowly along the sandy beach. Because he took his time, he found five shiny seashells to share with his friends.'
-  }
+const kidStories=[
+  {title:'The Little Star Who Shone Bright',emoji:'🌟',text:'Once upon a time, a tiny star lived high in the night sky. Even though she was small, she practiced shining every evening until she helped guide a lost little boat safely home.'},
+  {title:'Benny the Helpful Honeybee',emoji:'🐝',text:'Benny the bee loved visiting bright yellow sunflowers. By sharing pollen from flower to flower, Benny helped the whole garden grow colorful and strong.'},
+  {title:'The Curious Little Turtle',emoji:'🐢',text:'Timmy the turtle walked slowly along the sandy beach. Because he took his time, he found five shiny seashells to share with his friends.'}
 ];
-
-const storyList = document.getElementById('storyList');
-
-kidStories.forEach(st => {
-
-  const card = document.createElement('div');
-  card.className = 'bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2';
-
-  const header = document.createElement('div');
-  header.className = 'flex items-center justify-between gap-2';
-
-  const title = document.createElement('h3');
-  title.className = 'text-sm font-black text-white';
-  title.textContent = `${st.emoji} ${st.title}`;
-
-  const button = document.createElement('button');
-  button.className = 'kid-btn shrink-0 px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black';
-  button.innerHTML = '<i class="fa-solid fa-play mr-1"></i> Read to Me';
-
-  button.onclick = function() {
-    speakText(`${st.title}. ${st.text}`);
-  };
-
-  header.append(title,button);
-
-  const paragraph = document.createElement('p');
-  paragraph.className = 'text-xs text-gray-300 leading-relaxed';
-  paragraph.textContent = st.text;
-
-  card.append(header,paragraph);
+const storyList=document.getElementById('storyList');
+kidStories.forEach(st=>{
+  const card=document.createElement('div');
+  card.className='bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3';
+  const heading=document.createElement('div');
+  heading.className='flex items-center justify-between gap-2';
+  const title=document.createElement('h3');
+  title.className='text-sm font-black text-white';
+  title.textContent=`${st.emoji} ${st.title}`;
+  const play=document.createElement('button');
+  play.className='kid-btn shrink-0 px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black';
+  play.innerHTML='<i class="fa-solid fa-play mr-1"></i> Read to Me';
+  play.onclick=()=>speakText(`${st.title}. ${st.text}`);
+  heading.append(title,play);
+  const paragraph=document.createElement('p');
+  paragraph.className='text-xs text-gray-300 leading-relaxed';
+  paragraph.textContent=st.text;
+  card.append(heading,paragraph);
   storyList.appendChild(card);
 });
 
-// ======================================================
-// DRAWING CANVAS
-// ======================================================
-
-const kCanvas = document.getElementById('kidCanvas');
-const kCtx = kCanvas.getContext('2d');
-
-let kDrawing = false;
-let brushColor = '#38bdf8';
-
+const kCanvas=document.getElementById('kidCanvas');
+const kCtx=kCanvas.getContext('2d');
+let kDrawing=false,brushColor='#38bdf8';
 function resizeKidCanvas() {
-  const r = kCanvas.getBoundingClientRect();
-  if (!r.width) return;
-
-  const old = document.createElement('canvas');
-  old.width = kCanvas.width;
-  old.height = kCanvas.height;
-
-  if (old.width && old.height) {
-    old.getContext('2d').drawImage(kCanvas,0,0);
+  const r=kCanvas.getBoundingClientRect();
+  if(r.width>0) {
+    const ratio=window.devicePixelRatio||1;
+    kCanvas.width=Math.round(r.width*ratio);
+    kCanvas.height=Math.round(r.height*ratio);
+    kCtx.setTransform(ratio,0,0,ratio,0,0);
+    kCtx.strokeStyle=brushColor;kCtx.lineWidth=6;kCtx.lineCap='round';kCtx.lineJoin='round';
   }
-
-  kCanvas.width = r.width;
-  kCanvas.height = r.height;
-
-  if (old.width && old.height) {
-    kCtx.drawImage(old,0,0,old.width,old.height,0,0,kCanvas.width,kCanvas.height);
-  }
-
-  kCtx.strokeStyle = brushColor;
-  kCtx.lineWidth = 6;
-  kCtx.lineCap = 'round';
-  kCtx.lineJoin = 'round';
 }
+function setBrushColor(c){brushColor=c;kCtx.strokeStyle=c;}
+function clearKidCanvas(){kCtx.clearRect(0,0,kCanvas.width,kCanvas.height);}
+function getKPos(e){const r=kCanvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+kCanvas.addEventListener('pointerdown',e=>{kDrawing=true;kCanvas.setPointerCapture(e.pointerId);const p=getKPos(e);kCtx.beginPath();kCtx.moveTo(p.x,p.y);});
+kCanvas.addEventListener('pointermove',e=>{if(!kDrawing)return;const p=getKPos(e);kCtx.lineTo(p.x,p.y);kCtx.stroke();});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>kCanvas.addEventListener(ev,()=>kDrawing=false));
+window.addEventListener('resize',()=>{if(!document.getElementById('ksec-draw').classList.contains('hidden'))resizeKidCanvas();});
 
-function setBrushColor(color) {
-  brushColor = color;
-  kCtx.strokeStyle = color;
-}
-
-function clearKidCanvas() {
-  kCtx.clearRect(0,0,kCanvas.width,kCanvas.height);
-}
-
-function getKPos(e) {
-  const r = kCanvas.getBoundingClientRect();
-  return {x:e.clientX-r.left,y:e.clientY-r.top};
-}
-
-kCanvas.addEventListener('pointerdown',e => {
-  e.preventDefault();
-  kDrawing = true;
-  kCanvas.setPointerCapture(e.pointerId);
-  const p = getKPos(e);
-  kCtx.beginPath();
-  kCtx.moveTo(p.x,p.y);
-});
-
-kCanvas.addEventListener('pointermove',e => {
-  if (!kDrawing) return;
-  e.preventDefault();
-  const p = getKPos(e);
-  kCtx.lineTo(p.x,p.y);
-  kCtx.stroke();
-});
-
-kCanvas.addEventListener('pointerup',() => kDrawing=false);
-kCanvas.addEventListener('pointercancel',() => kDrawing=false);
-
-// ======================================================
-// PARENTAL GATE
-// ======================================================
-
-let gateSum = 33;
-
+let gateSum=33;
 function openParentalGate() {
   stopKidAudio();
-
-  const x = Math.floor(Math.random()*15)+11;
-  const y = Math.floor(Math.random()*15)+11;
-
-  gateSum = x+y;
-
-  document.getElementById('gateMathPrompt').textContent =
-    `${x} + ${y} = ?`;
-
-  document.getElementById('gateAnswerInput').value = '';
-
+  const x=Math.floor(Math.random()*15)+11,y=Math.floor(Math.random()*15)+11;
+  gateSum=x+y;
+  document.getElementById('gateMathPrompt').textContent=`${x} + ${y} = ?`;
+  document.getElementById('gateAnswerInput').value='';
   document.getElementById('gateLockView').classList.remove('hidden');
   document.getElementById('gateUnlockedView').classList.add('hidden');
   document.getElementById('parentModal').classList.remove('hidden');
 }
-
-function closeParentalGate() {
-  document.getElementById('parentModal').classList.add('hidden');
-}
-
-function verifyParentalGate() {
-  const answer = parseInt(
-    document.getElementById('gateAnswerInput').value,10
-  );
-
-  if (answer === gateSum) {
+function closeParentalGate(){document.getElementById('parentModal').classList.add('hidden');}
+function verifyParentalGate(){
+  if(parseInt(document.getElementById('gateAnswerInput').value,10)===gateSum){
     document.getElementById('gateLockView').classList.add('hidden');
     document.getElementById('gateUnlockedView').classList.remove('hidden');
-  } else {
-    alert('Incorrect answer. Adult verification required.');
-  }
+  } else alert('Incorrect answer. Adult verification required.');
 }
-
-// ======================================================
-// INITIALIZATION
-// ======================================================
-
 newMathQuestion();
-
-window.addEventListener('resize',function() {
-  if (!document.getElementById('ksec-draw').classList.contains('hidden')) {
-    resizeKidCanvas();
-  }
-});
-
-document.addEventListener('visibilitychange',function() {
-  if (document.hidden) {
-    onlineAudio.pause();
-    if (browserSpeech) browserSpeech.pause();
-  }
-});
-
-window.addEventListener('pagehide',stopKidAudio);
-
+checkVoice();
 </script>
 </body>
 </html>
