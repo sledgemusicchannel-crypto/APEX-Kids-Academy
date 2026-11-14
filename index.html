@@ -319,17 +319,52 @@ function testVoice() {
   speakText('Hello children! Welcome to APEX Kids Academy. Let us learn letters, numbers and stories together.');
 }
 function checkVoice() {
-  const speechAvailable = ('speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined');
-  const audioAvailable = !!voiceAudio && typeof voiceAudio.play === 'function';
-  if (!navigator.onLine) {
-    setVoiceStatus('Internet appears offline. Online narration needs an internet connection.', 'error');
-  } else if (speechAvailable && audioAvailable) {
-    setVoiceStatus('Browser speech and HTML audio are detected. Tap Test Voice to test actual playback.', 'success');
-  } else if (audioAvailable) {
-    setVoiceStatus('HTML audio is available. Online narration will be used. Tap Test Voice.', 'success');
-  } else {
-    setVoiceStatus('This WebView does not expose a supported speech or audio playback interface.', 'error');
+  const speechAvailable =
+    ('speechSynthesis' in window &&
+    typeof SpeechSynthesisUtterance !== 'undefined');
+
+  const audioAvailable =
+    !!voiceAudio && typeof voiceAudio.play === 'function';
+
+  if (!speechAvailable) {
+    setVoiceStatus(
+      'Device speech synthesis is not available in this WebView.',
+      'error'
+    );
+    return;
   }
+
+  const voices = window.speechSynthesis.getVoices();
+
+  if (voices.length === 0) {
+    setVoiceStatus(
+      'Speech engine detected, but no device voices are available yet. Checking again shortly…',
+      'playing'
+    );
+
+    setTimeout(() => {
+      const updatedVoices = window.speechSynthesis.getVoices();
+      const englishVoices = updatedVoices.filter(v =>
+        v.lang.toLowerCase().startsWith('en')
+      );
+
+      setVoiceStatus(
+        `Speech engine detected. Total voices: ${updatedVoices.length}. English voices: ${englishVoices.length}. HTML audio: ${audioAvailable ? 'Available' : 'Unavailable'}.`,
+        englishVoices.length ? 'success' : 'error'
+      );
+    }, 2000);
+
+    return;
+  }
+
+  const englishVoices = voices.filter(v =>
+    v.lang.toLowerCase().startsWith('en')
+  );
+
+  setVoiceStatus(
+    `Total device voices: ${voices.length}. English voices: ${englishVoices.length}. HTML audio: ${audioAvailable ? 'Available' : 'Unavailable'}.`,
+    englishVoices.length ? 'success' : 'error'
+  );
 }
 
 const tabStyles = {
