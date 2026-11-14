@@ -307,18 +307,27 @@ function speakText(text) {
   if (window.responsiveVoice &&
       typeof responsiveVoice.speak === 'function') {
     try {
+      const responsiveTimer = setTimeout(() => {
+  if (runId !== speechRunId || currentMode === 'responsive') return;
+
+  try {
+    responsiveVoice.cancel();
+  } catch (e) {}
+
+  startOnlineFallback(cleanText, runId);
+}, 8000);
       responsiveVoice.speak(cleanText, 'UK English Female', {
         rate: 0.88,
         pitch: 1.08,
         volume: 1,
 
-        onstart: () => {
+        onstart: () => {clearTimeout(responsiveTimer);
           if (runId !== speechRunId) return;
           currentMode = 'responsive';
           setVoiceStatus('Speaking with ResponsiveVoice…', 'playing');
         },
 
-        onend: () => {
+        onend: () => {clearTimeout(responsiveTimer);
           if (runId !== speechRunId) return;
           currentMode = '';
           setVoiceStatus(
@@ -327,7 +336,7 @@ function speakText(text) {
           );
         },
 
-        onerror: () => {
+        onerror: () => {clearTimeout(responsiveTimer);
           if (runId !== speechRunId) return;
           currentMode = '';
           startOnlineFallback(cleanText, runId);
