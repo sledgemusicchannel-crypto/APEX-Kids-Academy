@@ -167,6 +167,8 @@ let speechRunId = 0;
 let audioChunks = [];
 let audioChunkIndex = 0;
 let currentMode = '';
+let currentUtterance = null;
+let currentSpeechText = '';
 let currentLang = 'en-US';
 let currentMathPromptText = '';
 
@@ -178,7 +180,6 @@ function setVoiceStatus(message, type='info') {
      type === 'playing' ? 'bg-sky-950 text-sky-200' :
      'bg-slate-800 text-amber-200');
 }
-
 function stopKidAudio() {
   speechRunId++;
   if (speechWatchdog) clearTimeout(speechWatchdog);
@@ -188,14 +189,25 @@ function stopKidAudio() {
   audioChunks = [];
   audioChunkIndex = 0;
   currentMode = '';
+  currentUtterance = null;
   setVoiceStatus('Voice stopped.');
 }
-
+function splitForSpeech(text, maxLength=170) {
+  const words = String(text).trim().split(/\s+/);
+  const chunks = [];
+  let part = '';
+  for (const word of words) {
+    const next = part ? part + ' ' + word : word;
+    if (next.length > maxLength && part) { chunks.push(part); part = word; }
+    else part = next;
+  }
+  if (part) chunks.push(part);
+  return chunks;
+}
 function onlineSpeechUrl(text, lang='en-US') {
   const params = new URLSearchParams({ie:'UTF-8', client:'tw-ob', tl: lang, q:text});
   return 'https://translate.google.com/translate_tts?' + params.toString();
 }
-
 function playOnlineChunk(runId) {
   if (runId !== speechRunId) return;
   if (audioChunkIndex >= audioChunks.length) {
@@ -206,16 +218,36 @@ function playOnlineChunk(runId) {
   const chunk = audioChunks[audioChunkIndex];
   voiceAudio.src = onlineSpeechUrl(chunk, currentLang);
   voiceAudio.load();
-  voiceAudio.play().catch(() => {});
+  setVoiceStatus('Playing spoken narration…', 'playing');
+  const playPromise = voiceAudio.play();
+  if (playPromise && typeof playPromise.then === 'function') {
+    playPromise.then(() => {
+      if (runId === speechRunId) currentMode = 'audio';
+    }).catch(err => {
+      if (runId !== speechRunId) return;
+      currentMode = '';
+      setVoiceStatus('Audio playback was blocked.', 'error');
+    });
+  }
 }
-
 voiceAudio.addEventListener('ended', () => {
+  if (currentMode !== 'audio') return;
+  audioChunkIndex++;
+  playOnlineChunk(speechRunId);
+});
+voiceAudio.addEventListener('error', () => {
   if (currentMode === 'audio') {
-    audioChunkIndex++;
-    playOnlineChunk(speechRunId);
+    currentMode = '';
+    setVoiceStatus('Online narration could not load.', 'error');
   }
 });
-
+function startOnlineFallback(text, runId) {
+  if (runId !== speechRunId) return;
+  audioChunks = splitForSpeech(text);
+  audioChunkIndex = 0;
+  currentMode = 'audio';
+  playOnlineChunk(runId);
+}
 function speakText(text) {
   const cleanText = String(text || '').trim();
   if (!cleanText) return;
@@ -228,7 +260,8 @@ function speakText(text) {
 
   stopKidAudio();
   const runId = speechRunId;
-  setVoiceStatus('Speaking…', 'playing');
+  currentSpeechText = cleanText;
+  setVoiceStatus('Preparing voice…', 'playing');
 
   if (window.responsiveVoice && typeof responsiveVoice.speak === 'function') {
     let rvVoice = 'UK English Female';
@@ -245,20 +278,26 @@ function speakText(text) {
         rate: 0.88,
         pitch: 1.08,
         volume: 1,
-        onend: () => { if (runId === speechRunId) setVoiceStatus('Finished.', 'success'); },
-        onerror: () => { fallbackGoogleTTS(cleanText, runId); }
+        onstart: () => {
+          if (runId !== speechRunId) return;
+          currentMode = 'responsive';
+          setVoiceStatus('Speaking…', 'playing');
+        },
+        onend: () => {
+          if (runId !== speechRunId) return;
+          currentMode = '';
+          setVoiceStatus('Narration finished.', 'success');
+        },
+        onerror: () => {
+          if (runId !== speechRunId) return;
+          currentMode = '';
+          startOnlineFallback(cleanText, runId);
+        }
       });
       return;
     } catch (e) {}
   }
-  fallbackGoogleTTS(cleanText, runId);
-}
-
-function fallbackGoogleTTS(text, runId) {
-  audioChunks = [text];
-  audioChunkIndex = 0;
-  currentMode = 'audio';
-  playOnlineChunk(runId);
+  startOnlineFallback(cleanText, runId);
 }
 
 function testVoice() {
@@ -273,9 +312,25 @@ function testVoice() {
   };
   speakText(greetings[currentLang] || greetings['en-US']);
 }
-
 function checkVoice() {
   setVoiceStatus('Voice active for ' + currentLang, 'success');
+}
+
+const tabStyles = {
+  abc:'kid-btn bg-pink-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
+  math:'kid-btn bg-sky-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
+  stories:'kid-btn bg-emerald-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
+  draw:'kid-btn bg-amber-500 text-slate-950 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg'
+};
+const defaultTabColors = {abc:'text-pink-300',math:'text-sky-300',stories:'text-emerald-300',draw:'text-amber-300'};
+function showKidTab(tab) {
+  stopKidAudio();
+  ['abc','math','stories','draw'].forEach(t => {
+    document.getElementById('ksec-'+t).classList.toggle('hidden',t!==tab);
+    document.getElementById('ktab-'+t).className = t===tab ? tabStyles[t] :
+      `kid-btn bg-slate-800 ${defaultTabColors[t]} py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1`;
+  });
+  if (tab==='draw') resizeKidCanvas();
 }
 
 const abcTranslations = {
@@ -373,14 +428,21 @@ function renderABCs() {
   });
 }
 
-let currentMathAns = 5;
-function newMathQuestion() {
-  const a = Math.floor(Math.random()*9) + 1;
-  const b = Math.floor(Math.random()*9) + 1;
-  currentMathAns = a + b;
+function changeAppLanguage(lang) {
+  currentLang = lang;
+  renderABCs();
+  newMathQuestion();
+  renderStories();
+  setVoiceStatus('Language updated to ' + lang, 'success');
+}
 
-  document.getElementById('mathQuestion').textContent = `${a} + ${b} = ?`;
-  document.getElementById('mathFeedback').textContent = '';
+let currentMathAns=5;
+function newMathQuestion() {
+  const a=Math.floor(Math.random()*9)+1;
+  const b=Math.floor(Math.random()*9)+1;
+  currentMathAns=a+b;
+  document.getElementById('mathQuestion').textContent=`${a} + ${b} = ?`;
+  document.getElementById('mathFeedback').textContent='';
 
   if (currentLang === 'vi-VN') {
     currentMathPromptText = `${a} cộng ${b} bằng mấy?`;
@@ -398,18 +460,17 @@ function newMathQuestion() {
     currentMathPromptText = `${a} plus ${b} equals what?`;
   }
 
-  const opts = new Set([currentMathAns]);
-  while(opts.size < 3) opts.add(Math.floor(Math.random()*18) + 1);
-  const shuffled = Array.from(opts).sort(() => Math.random() - 0.5);
-
-  const box = document.getElementById('mathOptions');
-  box.innerHTML = '';
-  shuffled.forEach(num => {
-    const el = document.createElement('button');
-    el.className = 'kid-btn py-4 rounded-2xl bg-slate-900 border-2 border-sky-500/40 text-2xl font-black text-white hover:bg-sky-600';
-    el.textContent = num;
-    el.onclick = () => {
-      if (num === currentMathAns) {
+  const opts=new Set([currentMathAns]);
+  while(opts.size<3) opts.add(Math.floor(Math.random()*18)+1);
+  const shuffled=Array.from(opts).sort(()=>Math.random()-.5);
+  const box=document.getElementById('mathOptions');
+  box.innerHTML='';
+  shuffled.forEach(num=>{
+    const el=document.createElement('button');
+    el.className='kid-btn py-4 rounded-2xl bg-slate-900 border-2 border-sky-500/40 text-2xl font-black text-white hover:bg-sky-600';
+    el.textContent=num;
+    el.onclick=()=>{
+      if(num===currentMathAns) {
         let msg = '🎉 Correct! Great job!';
         if (currentLang === 'vi-VN') msg = '🎉 Chính xác! Tuyệt vời!';
         else if (currentLang === 'zh-CN') msg = '🎉 太棒了！回答正確！';
@@ -418,9 +479,9 @@ function newMathQuestion() {
         else if (currentLang === 'ko-KR') msg = '🎉 참 잘했어요! 정답입니다!';
         else if (currentLang === 'ja-JP') msg = '🎉 すごいね！正解です！';
 
-        document.getElementById('mathFeedback').textContent = msg;
+        document.getElementById('mathFeedback').textContent=msg;
         speakText(msg);
-        setTimeout(newMathQuestion, 3000);
+        setTimeout(newMathQuestion,3500);
       } else {
         let err = 'Try again!';
         if (currentLang === 'vi-VN') err = 'Thử lại nhé!';
@@ -430,7 +491,7 @@ function newMathQuestion() {
         else if (currentLang === 'ko-KR') err = '다시 시도해보세요!';
         else if (currentLang === 'ja-JP') err = 'もう一度！';
 
-        document.getElementById('mathFeedback').textContent = err;
+        document.getElementById('mathFeedback').textContent=err;
         speakText(err);
       }
     };
@@ -438,7 +499,7 @@ function newMathQuestion() {
   });
 }
 
-/* ALL 15 ORIGINAL BEDTIME STORIES FULLY PRESERVED & TRANSLATED */
+/* ALL 15 ORIGINAL BEDTIME STORIES WITH MULTI-LANGUAGE TRANSLATIONS */
 const kidStories = [
   {
     emoji: '🌙',
@@ -512,7 +573,7 @@ const kidStories = [
     },
     text: {
       'en-US': 'Milo had a little toy train that he loved more than anything. Every evening, before bedtime, he arranged its colorful carriages along the bedroom floor. One night, Milo imagined that the train had become a magical bedtime train. “All aboard!” called the friendly train driver. The train travelled quietly through Dreamland. It passed fields of silver flowers, sleepy villages, and mountains covered in soft moonlight. At each station, the train picked up a friendly animal. First came a sleepy rabbit, then a little bear, and finally a tiny fox. Everyone found a comfortable seat. The train moved slowly beneath a sky full of stars. Soon, Milo’s eyes began to close. He imagined the train taking him to a beautiful land filled with happy dreams. When morning arrived, Milo woke with a smile. The end.',
-      'vi-VN': 'Milo có một đoàn tàu đồ chơi nhỏ mà cậu yêu thích hơn bất cứ thứ gì. Mỗi buổi tối, trước giờ đi ngủ, cậu xếp các toa tàu đầy màu sắc dọc theo sàn phòng ngủ. Một đêm nọ, Milo tưởng tượng đoàn tàu đã trở thành một chuyến tàu đi ngủ kỳ diệu. “Tất cả lên tàu nào!” người lái tàu thân thiện gọi. Đoàn tàu di chuyển lặng lẽ qua Xứ sở Giấc mơ. Nó đi qua những cánh đồng hoa bạc, những ngôi làng buồn ngủ và những ngọn núi phủ ánh trăng mềm mại. Tại mỗi ga, đoàn tàu đón một con vật thân thiện. Đầu tiên là một chú thỏ buồn ngủ, tiếp theo là một chú gấu nhỏ, và cuối cùng là một chú cáo nhỏ. Mọi người đều tìm được chỗ ngồi thoải mái. Đoàn tàu di chuyển chậm rãi dưới bầu trời đầy sao. Chẳng mấy chốc, đôi mắt của Milo bắt đầu khép lại. Cậu tưởng tượng đoàn tàu đang đưa mình đến một vùng đất xinh đẹp tràn ngập những giấc mơ hạnh phúc. Khi buổi sáng đến, Milo thức dậy với nույ cười trên môi. Hết.',
+      'vi-VN': 'Milo có một đoàn tàu đồ chơi nhỏ mà cậu yêu thích hơn bất cứ thứ gì. Mỗi buổi tối, trước giờ đi ngủ, cậu xếp các toa tàu đầy màu sắc dọc theo sàn phòng ngủ. Một đêm nọ, Milo tưởng tượng đoàn tàu đã trở thành một chuyến tàu đi ngủ kỳ diệu. “Tất cả lên tàu nào!” người lái tàu thân thiện gọi. Đoàn tàu di chuyển lặng lẽ qua Xứ sở Giấc mơ. Nó đi qua những cánh đồng hoa bạc, những ngôi làng buồn ngủ và những ngọn núi phủ ánh trăng mềm mại. Tại mỗi ga, đoàn tàu đón một con vật thân thiện. Đầu tiên là một chú thỏ buồn ngủ, tiếp theo là một chú gấu nhỏ, và cuối cùng là một chú cáo nhỏ. Mọi người đều tìm được chỗ ngồi thoải mái. Đoàn tàu di chuyển chậm rãi dưới bầu trời đầy sao. Chẳng mấy chốc, đôi mắt của Milo bắt đầu khép lại. Cậu tưởng tượng đoàn tàu đang đưa mình đến một vùng đất xinh đẹp tràn ngập những giấc mơ hạnh phúc. Khi buổi sáng đến, Milo thức dậy với nụ cười trên môi. Hết.',
       'zh-CN': '米洛有一列他最心愛的小玩具火車。每天晚上睡覺前，他把五顏六色的車廂排在臥室的地板上。有一天晚上，米洛想像火車變成了一列神奇的睡前火車。「請上車！」友善的火車司機喊道。火車安靜地穿過夢幻島。它經過銀色花海、睏倦的村莊和被柔和月光覆蓋的山脈。在每個車站，火車都會接上一隻友善的動物。首先是一隻睏倦的兔子，接著是一隻小熊，最後是一隻小狐狸。每個人都找到了舒適的座位。火車在繁星點點的天空下緩緩行進。很快，米洛的眼睛開始閉上了。他想像火車帶他去一個充滿幸福夢想的美麗國度。清晨來臨，米洛帶著微笑醒來。故事結束。',
       'ar-SA': 'كان لدى ميلو قطار لعبة صغير كان يحبه أكثر من أي شيء آخر. كل مساء، قبل وقت النوم، كان يرتب عرباته الملونة على أرضية غرفة النوم. ذات ليلة، تخيل ميلو أن القطار أصبح قطار نوم سحرياً. نادى سائق القطار الودود: "الكل على متن القطار!" سافر القطار بهدوء عبر أرض الأحلام. مر بحقول الزهور الفضية، والقرى الناعمة، والجبال المغطاة بضوء القمر الناعم. في كل محطة، كان القطار يلتقط حيواناً وديئاً. جاء أولاً أرنب نعسان، ثم دب صغير، وأخيراً ثعلب صغير. وجد الجميع مقعداً مريحاً. تحرك القطار ببطء تحت سماء مليئة بالنجوم. سرعان ما بدأت عينا ميلو تغلقان. تخيل القطار يأخذه إلى أرض جميلة مليئة بالأحلام السعيدة. عندما حل الصباح، استيقظ ميلو مع ابتسامة. النهاية.',
       'fr-FR': 'Milo avait un petit train jouet qu\'il aimait plus que tout. Chaque soir, avant d\'aller se coucher, il disposait ses wagons colorés sur le sol de la chambre. Une nuit, Milo imagina que le train était devenu un train magique du coucher. « Tout le monde à bord ! » cria le sympathique conducteur. Le train voyagea tranquillement à travers le Pays des Rêves. Il passa devant des champs de fleurs argentées, des villages endormis et des montagnes couvertes d\'un clair de lune doux. À chaque station, le train prit un animal amical. D\'abord vint un lapin endormi, puis un petit ours et enfin un tout petit renard. Tout le monde trouva une place confortable. Le train avançait lentement sous un ciel plein d\'étoiles. Bientôt, les yeux de Milo commencèrent à se fermer. Il imagina le train l\'emmenant vers une belle terre remplie de rêves heureux. Le matin venu, Milo se réveilla avec le sourire. Fin.',
@@ -548,7 +609,7 @@ const kidStories = [
       'zh-CN': '諾拉住在一個美麗的海灘附近。她喜歡聽海浪輕輕拍打沙灘的聲音。一天晚上，諾拉和爺爺一起在海灘上散步。他們看著太陽慢慢消失在海平面以下。「為什麼海浪總是一直回來呢？」諾拉問。爺爺笑了笑。「大海有著溫柔的節奏，就像呼吸一樣。海浪湧進來，又退出去。」諾拉仔細地聽著。海浪嘩啦啦地響。微風沙沙地吹。一隻小螃蟹橫著走過沙灘，一隻海鳥靜靜地落在一塊石頭上。諾拉撿了一枚光滑的貝殼，回家後放在床邊。那天晚上，她記住了大海平靜的聲音。她閉上眼睛，想像著海浪唱著柔和的搖籃曲。故事結束。',
       'ar-SA': 'عاشت نورا بالقرب من شاطئ جميل. أحبت الاستماع إلى الأمواج وهي تتدحرج برفق على الرمال. ذات أمسية، مشت نورا على طول الشاطئ مع جدها. شاهدا الشمس تختفي ببطء وراء البحر. سألت نورا: "لماذا تستمر الأمواج في العودة؟" ابتسم الجد. "البحر له إيقاع لطيف، تماماً مثل التنفس. تأتي الأمواج وتذهب الأمواج." استمعت نورا بعناية. صوت الأمواج يتطاير. صوت النسيم يهب. مشى سلطعون صغير جانبياً عبر الرمال، واستقر طائر بحري بهدوء على صخرة. جمعت نورا صدفة ناعمة واحدة ووضعتها بجانب سريرها عندما عادت إلى المنزل. في تلك الليلة، تذكرت صوت المحيط الهادئ. أغلقَت عينيها وتخيلت الأمواج تغني تهويدة ناعمة. النهاية.',
       'fr-FR': 'Nora vivait près d\'une belle plage. Elle adorait écouter les vagues se dérouler doucement sur le sable. Un soir, Nora se promena le long de la plage avec son grand-père. Ils regardèrent le soleil disparaître lentement derrière la mer. « Pourquoi les vagues reviennent-elles sans cesse ? » demanda Nora. Grand-père sourit. « La mer a un rythme doux, tout comme la respiration. Les vagues entrent et les vagues sortent. » Nora écouta attentivement. Whoosh, faisaient les vagues. Whoosh, faisait la brise. Un petit crabe marchait de côté sur le sable, et un oiseau de mer s\'installa tranquillement sur un rocher. Nora ramassa un coquillage lisse et le plaça à côté de son lit lorsqu\'elle rentra chez elle. Cette nuit-là, elle se souvint du son paisible de l\'océan. Elle ferma les yeux et imagina les vagues chantant une douce berceuse. Fin.',
-      'ko-KR': '노라는 아름다운 해변 근처에 살았어요. 모래사장에 부드럽게 밀려오는 파도 소리를 듣는 것을 정말 좋아했지요. 어느 날 저녁, 노라는 할아버지와 함께 해변을 산책했어요. 바다 너머로 해가 천천히 저물어가는 모습을 바라보았지요. "파도는 왜 자꾸 다시 밀려오는 거예요?" 노라가 물었어요. 할아버지가 미소 지으며 말씀하셨어요. "바다는 숨을 쉬는 것처럼 부드러운 리듬을 가지고 있단다. 파도가 밀려오고, 또 파도가 밀려 나가지." 노라는 귀를 기울였어요. 쏴아아 파도 소리가 들리고, 살랑살랑 바람 소리가 불어왔어요. 작은 게 한 마리가 모래 위를 옆으로 아르바바 기어 갔고, 바닷새 한 마리가 바위에 조용히 내려앉았어요. 노라는 매끄러운 조개껍데기 하나를 주워 집에 와서 침대 옆에 놓아두었어요. 그날 밤, 노라는 바다의 평화로운 소리를 기억하며 두 눈을 감고 파도가 부드러운 자장가를 불러주는 상상을 했답니다. 끝.',
+      'ko-KR': '노라는 아름다운 해변 근처에 살았어요. 모래사장에 부드럽게 밀려오는 파도 소리를 듣는 것을 정말 좋아했지요. 어느 날 저녁, 노らは할아버지와 함께 해변을 산책했어요. 바다 너머로 해가 천천히 저물어가는 모습을 바라보았지요. "파도는 왜 자꾸 다시 밀려오는 거예요?" 노라가 물었어요. 할아버지가 미소 지으며 말씀하셨어요. "바다는 숨을 쉬는 것처럼 부드러운 리듬을 가지고 있단다. 파도가 밀려오고, 또 파도가 밀려 나가지." 노라는 귀를 기울였어요. 쏴아아 파도 소리가 들리고, 살랑살랑 바람 소리가 불어왔어요. 작은 게 한 마리가 모래 위를 옆으로 아르바바 기어 갔고, 바닷새 한 마리가 바위에 조용히 내려앉았어요. 노라는 매끄러운 조개껍데기 하나를 주워 집에 와서 침대 옆에 놓아두었어요. 그날 밤, 노라는 바다의 평화로운 소리를 기억하며 두 눈을 감고 파도가 부드러운 자장가를 불러주는 상상을 했답니다. 끝.',
       'ja-JP': 'ノラは美しい浜辺の近くに住んでいました。砂浜に優しく打ち寄せる波の音を聞くのが大好きでした。ある日の夕方、ノラはおじいちゃんと一緒に浜辺を散歩しました。太陽がゆっくりと海の向こうに沈んでいくのを見つめました。「どうして波は何度も何度も戻ってくるの？」ノラが尋ねました。おじいちゃんはニコッと微笑みました。「海にはね、呼吸のように優しいリズムがあるんだよ。波が寄せてきて、そして波が引いていくんだ。」ノラはしっかりと耳を澄ました。ザブーンと波が打ち寄せます。ヒューと風が吹きます。小さなカニが砂浜を横歩きし、海鳥が岩の上で静かに羽を休めました。ノラはツルツルの貝殻を一つ拾って、お家に帰ってベッドの脇に置きました。その夜、彼女は海の穏やかな音を思い出しました。目を閉じ、波が優しい子守唄を歌っているのを想像しました。おしまい。'
     }
   },
@@ -690,10 +751,10 @@ function renderStories() {
     const titleText = st.title[currentLang] || st.title['en-US'];
     const bodyText = st.text[currentLang] || st.text['en-US'];
     
-    let listenLabel = 'Listen';
-    if (currentLang === 'vi-VN') listenLabel = 'Nghe';
+    let listenLabel = 'Read to Me';
+    if (currentLang === 'vi-VN') listenLabel = 'Nghe đọc';
     else if (currentLang === 'zh-CN') listenLabel = '聽故事';
-    else if (currentLang === 'ar-SA') listenLabel = 'استمع';
+    else if (currentLang === 'ar-SA') listenLabel = 'اقرأ لي';
     else if (currentLang === 'fr-FR') listenLabel = 'Écouter';
     else if (currentLang === 'ko-KR') listenLabel = '이야기 듣기';
     else if (currentLang === 'ja-JP') listenLabel = 'お話を聴く';
@@ -713,60 +774,44 @@ function renderStories() {
   });
 }
 
-function showKidTab(tab) {
-  stopKidAudio();
-  ['abc','math','stories','draw'].forEach(t => {
-    document.getElementById('ksec-'+t).classList.toggle('hidden', t !== tab);
-    document.getElementById('ktab-'+t).className = t === tab ? tabStyles[t] :
-      `kid-btn bg-slate-800 ${defaultTabColors[t]} py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1`;
-  });
-  if (tab === 'draw') resizeKidCanvas();
-}
-
-const kCanvas = document.getElementById('kidCanvas');
-const kCtx = kCanvas.getContext('2d');
-let kDrawing = false, brushColor = '#38bdf8';
-
+const kCanvas=document.getElementById('kidCanvas');
+const kCtx=kCanvas.getContext('2d');
+let kDrawing=false,brushColor='#38bdf8';
 function resizeKidCanvas() {
-  const r = kCanvas.getBoundingClientRect();
-  if (r.width > 0) {
-    const ratio = window.devicePixelRatio || 1;
-    kCanvas.width = Math.round(r.width * ratio);
-    kCanvas.height = Math.round(r.height * ratio);
-    kCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    kCtx.strokeStyle = brushColor;
-    kCtx.lineWidth = 6;
-    kCtx.lineCap = 'round';
-    kCtx.lineJoin = 'round';
+  const r=kCanvas.getBoundingClientRect();
+  if(r.width>0) {
+    const ratio=window.devicePixelRatio||1;
+    kCanvas.width=Math.round(r.width*ratio);
+    kCanvas.height=Math.round(r.height*ratio);
+    kCtx.setTransform(ratio,0,0,ratio,0,0);
+    kCtx.strokeStyle=brushColor;kCtx.lineWidth=6;kCtx.lineCap='round';kCtx.lineJoin='round';
   }
 }
+function setBrushColor(c){brushColor=c;kCtx.strokeStyle=c;}
+function clearKidCanvas(){kCtx.clearRect(0,0,kCanvas.width,kCanvas.height);}
+function getKPos(e){const r=kCanvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+kCanvas.addEventListener('pointerdown',e=>{kDrawing=true;kCanvas.setPointerCapture(e.pointerId);const p=getKPos(e);kCtx.beginPath();kCtx.moveTo(p.x,p.y);});
+kCanvas.addEventListener('pointermove',e=>{if(!kDrawing)return;const p=getKPos(e);kCtx.lineTo(p.x,p.y);kCtx.stroke();});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>kCanvas.addEventListener(ev,()=>kDrawing=false));
+window.addEventListener('resize',()=>{if(!document.getElementById('ksec-draw').classList.contains('hidden'))resizeKidCanvas();});
 
-function setBrushColor(c) { brushColor = c; kCtx.strokeStyle = c; }
-function clearKidCanvas() { kCtx.clearRect(0, 0, kCanvas.width, kCanvas.height); }
-function getKPos(e) { const r = kCanvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
-
-kCanvas.addEventListener('pointerdown', e => { kDrawing = true; kCanvas.setPointerCapture(e.pointerId); const p = getKPos(e); kCtx.beginPath(); kCtx.moveTo(p.x, p.y); });
-kCanvas.addEventListener('pointermove', e => { if (!kDrawing) return; const p = getKPos(e); kCtx.lineTo(p.x, p.y); kCtx.stroke(); });
-['pointerup','pointercancel','lostpointercapture'].forEach(ev => kCanvas.addEventListener(ev, () => kDrawing = false));
-window.addEventListener('resize', () => { if (!document.getElementById('ksec-draw').classList.contains('hidden')) resizeKidCanvas(); });
-
-let gateSum = 33;
+let gateSum=33;
 function openParentalGate() {
   stopKidAudio();
-  const x = Math.floor(Math.random()*15) + 11, y = Math.floor(Math.random()*15) + 11;
-  gateSum = x + y;
-  document.getElementById('gateMathPrompt').textContent = `${x} + ${y} = ?`;
-  document.getElementById('gateAnswerInput').value = '';
+  const x=Math.floor(Math.random()*15)+11,y=Math.floor(Math.random()*15)+11;
+  gateSum=x+y;
+  document.getElementById('gateMathPrompt').textContent=`${x} + ${y} = ?`;
+  document.getElementById('gateAnswerInput').value='';
   document.getElementById('gateLockView').classList.remove('hidden');
   document.getElementById('gateUnlockedView').classList.add('hidden');
   document.getElementById('parentModal').classList.remove('hidden');
 }
-function closeParentalGate() { document.getElementById('parentModal').classList.add('hidden'); }
-function verifyParentalGate() {
-  if (parseInt(document.getElementById('gateAnswerInput').value, 10) === gateSum) {
+function closeParentalGate(){document.getElementById('parentModal').classList.add('hidden');}
+function verifyParentalGate(){
+  if(parseInt(document.getElementById('gateAnswerInput').value,10)===gateSum){
     document.getElementById('gateLockView').classList.add('hidden');
     document.getElementById('gateUnlockedView').classList.remove('hidden');
-  } else alert('Incorrect answer.');
+  } else alert('Incorrect answer. Adult verification required.');
 }
 
 renderABCs();
