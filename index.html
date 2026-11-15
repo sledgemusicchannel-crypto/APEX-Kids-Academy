@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<script src="https://cdn.responsivevoice.org/sdk/latest/responsivevoice.js"></script>
+  <script src="https://cdn.responsivevoice.org/sdk/latest/responsivevoice.js"></script>
 <script>
   responsiveVoice.init({
     "apiKey": "k2Kx4Eif"
@@ -39,16 +39,15 @@
       <div class="flex items-center gap-2">
         <select id="appLangSelect" onchange="changeAppLanguage(this.value)" class="bg-slate-800 border border-slate-700 text-amber-300 text-xs font-bold rounded-xl px-2 py-2 outline-none">
           <option value="en-US">🇬🇧 English</option>
-          <option value="ko-KR">🇰🇷 한국어</option>
-          <option value="ja-JP">🇯🇵 日本語</option>
-          <option value="es-ES">🇪🇸 Español</option>
-          <option value="fr-FR">🇫🇷 Français</option>
           <option value="vi-VN">🇻🇳 Tiếng Việt</option>
           <option value="zh-CN">🇨🇳 中文</option>
-          <option value="de-DE">🇩🇪 Deutsch</option>
+          <option value="ar-SA">🇸🇦 العربية</option>
+          <option value="fr-FR">🇫🇷 Français</option>
+          <option value="ko-KR">🇰🇷 한국어</option>
+          <option value="ja-JP">🇯🇵 日本語</option>
         </select>
         <button onclick="openParentalGate()" class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-[11px] font-bold text-gray-300">
-          <i class="fa-solid fa-lock text-amber-400"></i>
+          <i class="fa-solid fa-lock text-amber-400"></i> Parents & Teachers
         </button>
       </div>
     </div>
@@ -57,36 +56,37 @@
   <main class="flex-1 w-full max-w-xl mx-auto p-4 space-y-5">
     <section class="kid-card p-4 space-y-3 border-sky-500/50">
       <div class="flex items-center justify-between gap-2">
-        <span class="font-black text-sky-300 text-sm" data-i18n="voiceEngine"><i class="fa-solid fa-microphone mr-2"></i>EDUCATIONAL VOICE ENGINE</span>
-        <button onclick="checkVoice()" class="text-amber-300 text-xs font-black underline" data-i18n="voiceCheck">Voice Check</button>
+        <span class="font-black text-sky-300 text-sm"><i class="fa-solid fa-microphone mr-2"></i>EDUCATIONAL VOICE ENGINE</span>
+        <button onclick="checkVoice()" class="text-amber-300 text-xs font-black underline">Voice Check</button>
       </div>
       <div id="voiceStatus" role="status" aria-live="polite" class="rounded-2xl bg-slate-800 px-3 py-3 text-center text-sm font-bold text-amber-200 flex items-center justify-center">
         Ready. Tap Test Voice to hear a spoken greeting.
       </div>
       <div class="grid grid-cols-2 gap-3">
         <button onclick="testVoice()" class="kid-btn rounded-2xl bg-sky-600 py-4 font-black text-base text-white">
-          <i class="fa-solid fa-play mr-2"></i><span data-i18n="testVoice">Test Voice</span>
+          <i class="fa-solid fa-play mr-2"></i>Test Voice
         </button>
         <button onclick="stopKidAudio()" class="kid-btn rounded-2xl bg-rose-600 py-4 font-black text-base text-white">
-          <i class="fa-solid fa-stop mr-2"></i><span data-i18n="stopVoice">Stop Voice</span>
+          <i class="fa-solid fa-stop mr-2"></i>Stop Voice
         </button>
       </div>
+      <p class="text-[10px] leading-relaxed text-slate-400">The 15 recorded stories can play from the included audio folder. Other lesson voices may require internet or device speech support. Keep media volume turned up.</p>
     </section>
 
     <div class="grid grid-cols-4 gap-2">
       <button onclick="showKidTab('abc')" id="ktab-abc" class="kid-btn bg-pink-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg"><i class="fa-solid fa-font text-lg"></i>ABCs</button>
-      <button onclick="showKidTab('math')" id="ktab-math" class="kid-btn bg-slate-800 text-sky-300 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1"><i class="fa-solid fa-shapes text-lg"></i>Math</button>
+      <button onclick="showKidTab('math')" id="ktab-math" class="kid-btn bg-slate-800 text-sky-300 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1"><i class="fa-solid fa-shapes text-lg"></i>123 & Math</button>
       <button onclick="showKidTab('stories')" id="ktab-stories" class="kid-btn bg-slate-800 text-emerald-300 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1"><i class="fa-solid fa-book-open-reader text-lg"></i>Stories</button>
-      <button onclick="showKidTab('draw')" id="ktab-draw" class="kid-btn bg-slate-800 text-amber-300 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1"><i class="fa-solid fa-paintbrush text-lg"></i>Trace</button>
+      <button onclick="showKidTab('draw')" id="ktab-draw" class="kid-btn bg-slate-800 text-amber-300 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1"><i class="fa-solid fa-paintbrush text-lg"></i>Trace Pad</button>
     </div>
 
     <section id="ksec-abc" class="space-y-4">
       <div class="kid-card p-5 text-center space-y-3 border-pink-500/40">
-        <span class="px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-black" data-i18n="tapLetter">TAP A LETTER TO HEAR IT!</span>
+        <span class="px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-black">TAP A LETTER TO HEAR IT!</span>
         <div id="abcDisplayEmoji" class="text-6xl py-2">🍎</div>
         <h2 id="abcDisplayWord" class="text-2xl font-black text-white">A is for Apple</h2>
-        <button onclick="speakText(currentSpokenWord)" class="kid-btn px-6 py-3 rounded-2xl bg-emerald-500 text-slate-950 font-black text-sm shadow-lg">
-          <i class="fa-solid fa-volume-high mr-1.5"></i> <span data-i18n="repeatVoice">Repeat Voice</span>
+        <button onclick="speakText(document.getElementById('abcDisplayWord').textContent)" class="kid-btn px-6 py-3 rounded-2xl bg-emerald-500 text-slate-950 font-black text-sm shadow-lg">
+          <i class="fa-solid fa-volume-high mr-1.5"></i> Repeat Voice
         </button>
       </div>
       <div id="abcGrid" class="grid grid-cols-4 sm:grid-cols-6 gap-2.5"></div>
@@ -94,20 +94,20 @@
 
     <section id="ksec-math" class="hidden space-y-4">
       <div class="kid-card p-5 text-center space-y-3 border-sky-500/40">
-        <span class="px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-xs font-black" data-i18n="mathChallenge">PRIMARY MATH CHALLENGE</span>
+        <span class="px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-xs font-black">PRIMARY MATH CHALLENGE</span>
         <div id="mathStars" class="text-2xl tracking-widest text-amber-400">⭐⭐⭐</div>
         <h2 id="mathQuestion" class="text-3xl font-black text-white py-2">2 + 3 = ?</h2>
         <div id="mathOptions" class="grid grid-cols-3 gap-3 pt-2"></div>
         <p id="mathFeedback" class="text-sm font-black text-emerald-400 min-h-6"></p>
-        <button onclick="speakText(currentMathQuestionText)" class="kid-btn px-5 py-2 rounded-xl bg-sky-600 text-white text-sm font-bold"><i class="fa-solid fa-volume-high mr-1"></i><span data-i18n="readQuestion">Read Question</span></button>
+        <button onclick="speakText(document.getElementById('mathQuestion').textContent)" class="kid-btn px-5 py-2 rounded-xl bg-sky-600 text-white text-sm font-bold"><i class="fa-solid fa-volume-high mr-1"></i>Read Question</button>
       </div>
     </section>
 
     <section id="ksec-stories" class="hidden space-y-4">
       <div class="kid-card p-5 space-y-4 border-emerald-500/40">
         <div class="flex items-center justify-between">
-          <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black" data-i18n="audioStories">AUDIO STORY TIME</span>
-          <button onclick="stopKidAudio()" class="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold"><i class="fa-solid fa-stop mr-1"></i><span data-i18n="stop">Stop</span></button>
+          <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black">AUDIO STORY TIME</span>
+          <button onclick="stopKidAudio()" class="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold"><i class="fa-solid fa-stop mr-1"></i>Stop</button>
         </div>
         <div id="storyList" class="space-y-3"></div>
       </div>
@@ -116,12 +116,12 @@
     <section id="ksec-draw" class="hidden space-y-3">
       <div class="kid-card p-4 space-y-3 border-amber-500/40">
         <div class="flex items-center justify-between gap-2 flex-wrap">
-          <span class="text-sm font-black text-amber-300" data-i18n="drawPad"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Draw Letters & Shapes</span>
+          <span class="text-sm font-black text-amber-300"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Draw Letters & Shapes</span>
           <div class="flex gap-2 items-center">
             <button aria-label="Blue brush" onclick="setBrushColor('#38bdf8')" class="w-7 h-7 rounded-full bg-sky-400 border-2 border-white"></button>
             <button aria-label="Pink brush" onclick="setBrushColor('#f472b6')" class="w-7 h-7 rounded-full bg-pink-400 border-2 border-white"></button>
             <button aria-label="Yellow brush" onclick="setBrushColor('#fbbf24')" class="w-7 h-7 rounded-full bg-amber-400 border-2 border-white"></button>
-            <button onclick="clearKidCanvas()" class="px-3 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold" data-i18n="clear">Clear</button>
+            <button onclick="clearKidCanvas()" class="px-3 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold">Clear</button>
           </div>
         </div>
         <canvas id="kidCanvas" class="w-full h-64 bg-slate-950 rounded-2xl border-2 border-slate-800"></canvas>
@@ -144,89 +144,22 @@
       <div id="gateUnlockedView" class="hidden space-y-3 text-xs text-gray-300">
         <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
           <p class="font-bold text-white">Classroom & Home Guide</p>
-          <p>• All 13 bedtime stories, ABC flashcards, and math challenges automatically adapt to the chosen student language.</p>
+          <p>• Kindergarten: use ABCs and Trace Pad for phonics and letter practice.</p>
+          <p>• Primary: use 123 Math and Audio Stories for reading and arithmetic.</p>
+          <p>• Child privacy: this page does not request children's personal information.</p>
         </div>
         <button onclick="closeParentalGate()" class="w-full py-3 rounded-xl bg-indigo-600 text-white font-bold">Return to Kids Mode</button>
       </div>
     </div>
   </div>
 
+  <footer class="fixed bottom-0 inset-x-0 bg-slate-900/95 border-t border-slate-800 py-3 text-center text-[10px] text-gray-400 z-20">
+    APEX KIDS ACADEMY · Child-Safe Learning Edition · APEX MOBILITY SYSTEM
+  </footer>
+
   <audio id="voiceAudio" preload="none" playsinline></audio>
 
 <script>
-let currentLang = 'en-US';
-let currentSpokenWord = 'A is for Apple';
-let currentMathQuestionText = '2 plus 3 equals 5';
-
-const translations = {
-  'en-US': { voiceEngine: 'EDUCATIONAL VOICE ENGINE', voiceCheck: 'Voice Check', testVoice: 'Test Voice', stopVoice: 'Stop Voice', tapLetter: 'TAP A LETTER TO HEAR IT!', repeatVoice: 'Repeat Voice', mathChallenge: 'PRIMARY MATH CHALLENGE', readQuestion: 'Read Question', audioStories: 'AUDIO STORY TIME', stop: 'Stop', drawPad: 'Draw Letters & Shapes', clear: 'Clear', listen: 'Listen' },
-  'ko-KR': { voiceEngine: '교육용 음성 엔진', voiceCheck: '음성 확인', testVoice: '음성 테스트', stopVoice: '음성 중지', tapLetter: '글자를 터치하여 들어보세요!', repeatVoice: '다시 듣기', mathChallenge: '기초 수학 챌린지', readQuestion: '질문 읽기', audioStories: '오디오 동화 시간', stop: '중지', drawPad: '글자 및 도형 그리기', clear: '지우기', listen: '듣기' },
-  'ja-JP': { voiceEngine: '教育音声エンジン', voiceCheck: '音声チェック', testVoice: '音声テスト', stopVoice: '音声停止', tapLetter: '文字をタップして聞いてね！', repeatVoice: '音声を繰り返す', mathChallenge: '算数チャレンジ', readQuestion: '問題を読み上げる', audioStories: 'オーディオ絵本タイム', stop: '停止', drawPad: '文字と図形を描こう', clear: 'クリア', listen: '聴く' },
-  'es-ES': { voiceEngine: 'MOTOR DE VOZ EDUCATIVA', voiceCheck: 'Verificar Voz', testVoice: 'Probar Voz', stopVoice: 'Detener', tapLetter: '¡TOCA UNA LETRA PARA ESCUCHARLA!', repeatVoice: 'Repetir Voz', mathChallenge: 'RETO DE MATEMÁTICAS', readQuestion: 'Leer Pregunta', audioStories: 'HORA DE CUENTOS', stop: 'Detener', drawPad: 'Dibujar Letras y Formas', clear: 'Borrar', listen: 'Escuchar' },
-  'fr-FR': { voiceEngine: 'MOTEUR VOCAL ÉDUCATIF', voiceCheck: 'Vérifier la Voix', testVoice: 'Tester la Voix', stopVoice: 'Arrêter', tapLetter: 'TOUCHEZ UNE LETTRE POUR L\'ÉCOUTER !', repeatVoice: 'Répéter', mathChallenge: 'DÉFI MATHÉMATIQUE', readQuestion: 'Lire la Question', audioStories: 'HISTOIRES AUDIO', stop: 'Arrêter', drawPad: 'Dessiner des Lettres', clear: 'Effacer', listen: 'Écouter' },
-  'vi-VN': { voiceEngine: 'HỆ THỐNG GIỌNG NÓI HỌC TẬP', voiceCheck: 'Kiểm tra Giọng', testVoice: 'Thử Giọng', stopVoice: 'Dừng', tapLetter: 'CHẠM VÀO MỘT CHỮ CÁI ĐỂ NGHE!', repeatVoice: 'Lặp lại', mathChallenge: 'THỬ THÁCH TOÁN HỌC', readQuestion: 'Đọc Câu Hỏi', audioStories: 'GIỜ KỂ CHUYỆN', stop: 'Dừng', drawPad: 'Vẽ Chữ & Hình', clear: 'Xóa', listen: 'Nghe' },
-  'zh-CN': { voiceEngine: '教育語音引擎', voiceCheck: '語音檢查', testVoice: '測試語音', stopVoice: '停止語音', tapLetter: '點擊字母聽發音！', repeatVoice: '重複發音', mathChallenge: '小學數學挑戰', readQuestion: '讀出問題', audioStories: '有聲故事時間', stop: '停止', drawPad: '繪製字母與形狀', clear: '清除', listen: '聼' },
-  'de-DE': { voiceEngine: 'BILDUNGS-SPRACHENGINE', voiceCheck: 'Sprachprüfung', testVoice: 'Stimme Testen', stopVoice: 'Stoppen', tapLetter: 'TIPPEN SIE AUF EINEN BUCHSTABEN!', repeatVoice: 'Wiederholen', mathChallenge: 'MATHE- HERAUSFORDERUNG', readQuestion: 'Frage Vorlesen', audioStories: 'HÖRSPIELZEIT', stop: 'Stopp', drawPad: 'Buchstaben Zeichnen', clear: 'Löschen', listen: 'Anhören' }
-};
-
-const abcData = [
-  {l:'A',w:{'en-US':'Apple','ko-KR':'사과 (Apple)','ja-JP':'リンゴ (Apple)','es-ES':'Manzana','fr-FR':'Pomme','vi-VN':'Quả táo','zh-CN':'苹果','de-DE':'Apfel'},e:'🍎'},
-  {l:'B',w:{'en-US':'Bear','ko-KR':'곰 (Bear)','ja-JP':'クマ (Bear)','es-ES':'Oso','fr-FR':'Ours','vi-VN':'Con gấu','zh-CN':'熊','de-DE':'Bär'},e:'🐻'},
-  {l:'C',w:{'en-US':'Cat','ko-KR':'고양이 (Cat)','ja-JP':'ネコ (Cat)','es-ES':'Gato','fr-FR':'Chat','vi-VN':'Con mèo','zh-CN':'貓','de-DE':'Katze'},e:'🐱'},
-  {l:'D',w:{'en-US':'Dog','ko-KR':'강아지 (Dog)','ja-JP':'イヌ (Dog)','es-ES':'Perro','fr-FR':'Chien','vi-VN':'Con chó','zh-CN':'狗','de-DE':'Hund'},e:'🐶'},
-  {l:'E',w:{'en-US':'Elephant','ko-KR':'코끼리 (Elephant)','ja-JP':'ゾウ (Elephant)','es-ES':'Elefante','fr-FR':'Éléphant','vi-VN':'Con voi','zh-CN':'大象','de-DE':'Elefant'},e:'🐘'},
-  {l:'F',w:{'en-US':'Fish','ko-KR':'물고기 (Fish)','ja-JP':'サカナ (Fish)','es-ES':'Pez','fr-FR':'Poisson','vi-VN':'Con cá','zh-CN':'魚','de-DE':'Fisch'},e:'🐠'},
-  {l:'G',w:{'en-US':'Giraffe','ko-KR':'기린 (Giraffe)','ja-JP':'キリン (Giraffe)','es-ES':'Jirafa','fr-FR':'Girafe','vi-VN':'Hươu cao cổ','zh-CN':'長頸鹿','de-DE':'Giraffe'},e:'🦒'},
-  {l:'H',w:{'en-US':'House','ko-KR':'집 (House)','ja-JP':'いえ (House)','es-ES':'Casa','fr-FR':'Maison','vi-VN':'Ngôi nhà','zh-CN':'房子','de-DE':'Haus'},e:'🏠'},
-  {l:'I',w:{'en-US':'Ice Cream','ko-KR':'아이스크림 (Ice Cream)','ja-JP':'アイスクリーム','es-ES':'Helado','fr-FR':'Glace','vi-VN':'Kem','zh-CN':'冰淇淋','de-DE':'Eiscreme'},e:'🍦'},
-  {l:'J',w:{'en-US':'Juice','ko-KR':'주스 (Juice)','ja-JP':'ジュース','es-ES':'Jugo','fr-FR':'Jus','vi-VN':'Nước trái cây','zh-CN':'果汁','de-DE':'Saft'},e:'🧃'},
-  {l:'K',w:{'en-US':'Kite','ko-KR':'연 (Kite)','ja-JP':'たこ (Kite)','es-ES':'Cometa','fr-FR':'Cerf-volant','vi-VN':'Con diều','zh-CN':'風箏','de-DE':'Drachen'},e:'🪁'},
-  {l:'L',w:{'en-US':'Lion','ko-KR':'사자 (Lion)','ja-JP':'ライオン','es-ES':'León','fr-FR':'Lion','vi-VN':'Con sư tử','zh-CN':'獅子','de-DE':'Löwe'},e:'🦁'},
-  {l:'M',w:{'en-US':'Moon','ko-KR':'달 (Moon)','ja-JP':'つき (Moon)','es-ES':'Luna','fr-FR':'Lune','vi-VN':'Mặt trăng','zh-CN':'月亮','de-DE':'Mond'},e:'🌙'},
-  {l:'N',w:{'en-US':'Nest','ko-KR':'새집 (Nest)','ja-JP':'す (Nest)','es-ES':'Nido','fr-FR':'Nid','vi-VN':'Tổ chim','zh-CN':'巢','de-DE':'Nest'},e:'🪺'},
-  {l:'O',w:{'en-US':'Owl','ko-KR':'부엉이 (Owl)','ja-JP':'フクロウ','es-ES':'Búho','fr-FR':'Hibou','vi-VN':'Con cú','zh-CN':'貓頭鷹','de-DE':'Eule'},e:'🦉'},
-  {l:'P',w:{'en-US':'Penguin','ko-KR':'펭귄 (Penguin)','ja-JP':'ペンギン','es-ES':'Pingüino','fr-FR':'Manchot','vi-VN':'Chim cánh cụt','zh-CN':'企鵝','de-DE':'Pinguin'},e:'🐧'},
-  {l:'Q',w:{'en-US':'Queen','ko-KR':'여왕 (Queen)','ja-JP':'女王','es-ES':'Reina','fr-FR':'Reine','vi-VN':'Nữ hoàng','zh-CN':'女王','de-DE':'Königin'},e:'👑'},
-  {l:'R',w:{'en-US':'Rainbow','ko-KR':'무지개 (Rainbow)','ja-JP':'にじ (Rainbow)','es-ES':'Arco iris','fr-FR':'Arc-en-ciel','vi-VN':'Cầu vồng','zh-CN':'彩虹','de-DE':'Regenbogen'},e:'🌈'},
-  {l:'S',w:{'en-US':'Sun','ko-KR':'태양 (Sun)','ja-JP':'たいよう','es-ES':'Sol','fr-FR':'Soleil','vi-VN':'Mặt trời','zh-CN':'太陽','de-DE':'Sonne'},e:'☀️'},
-  {l:'T',w:{'en-US':'Tiger','ko-KR':'호랑이 (Tiger)','ja-JP':'トラ (Tiger)','es-ES':'Tigre','fr-FR':'Tigre','vi-VN':'Con hổ','zh-CN':'老虎','de-DE':'Tiger'},e:'🐯'},
-  {l:'U',w:{'en-US':'Umbrella','ko-KR':'우산 (Umbrella)','ja-JP':'傘 (Umbrella)','es-ES':'Paraguas','fr-FR':'Parapluie','vi-VN':'Cái ô','zh-CN':'雨傘','de-DE':'Regenschirm'},e:'☂️'},
-  {l:'V',w:{'en-US':'Violin','ko-KR':'바이올린','ja-JP':'バイオリン','es-ES':'Violín','fr-FR':'Violon','vi-VN':'Đàn vĩ cầm','zh-CN':'小提琴','de-DE':'Violine'},e:'🎻'},
-  {l:'W',w:{'en-US':'Whale','ko-KR':'고래 (Whale)','ja-JP':'クジラ','es-ES':'Ballena','fr-FR':'Baleine','vi-VN':'Cá voi','zh-CN':'鯨魚','de-DE':'Wal'},e:'🐳'},
-  {l:'X',w:{'en-US':'Xylophone','ko-KR':'실로폰','ja-JP':'木琴 (Xylophone)','es-ES':'Xilófono','fr-FR':'Xylophone','vi-VN':'Đàn mộc cầm','zh-CN':'木琴','de-DE':'Xylophon'},e:'🎼'},
-  {l:'Y',w:{'en-US':'Yo-yo','ko-KR':'요요 (Yo-yo)','ja-JP':'ヨーヨー','es-ES':'Yoyó','fr-FR':'Yo-yo','vi-VN':'Đồ chơi yo-yo','zh-CN':'溜溜球','de-DE':'Jojo'},e:'🪀'},
-  {l:'Z',w:{'en-US':'Zebra','ko-KR':'얼룩말 (Zebra)','ja-JP':'シマウマ','es-ES':'Cebra','fr-FR':'Zèbre','vi-VN':'Con ngựa vằn','zh-CN':'斑馬','de-DE':'Zebra'},e:'🦓'}
-];
-
-const kidStories = [
-  {title:{'en-US':'The Moonbeam’s Goodnight Visit','ko-KR':'달빛 요정의 굿나잇 방문','ja-JP':'月光の夜の挨拶','es-ES':'La Visita de la Luna','fr-FR':'La Visite du Rayon de Lune','vi-VN':'Chuyến ghé thăm của ánh trăng','zh-CN':'月光晚安訪客','de-DE':'Der Gute-Nacht-Besuch'}, emoji:'🌙', text:{'en-US':'Once upon a time, in a little village beside a quiet forest, there lived a child named Lily. Every night, Lily looked through her bedroom window at the beautiful moon and went to sleep with sweet dreams. The end.','ko-KR':'옛날 어느 조용한 숲속 마을에 릴리라는 아이가 살았어요. 밤마다 릴리는 창문 너머 예쁜 달을 보며 달콤한 꿈을 꾸었어요. 끝.','ja-JP':'むかしむかし、静かな森のそばの小さな村に、リリーという子どもが住んでいました。毎晩、リリーは窓から美しい月を見上げて、甘い夢を見ながら眠りました。おしまい。','es-ES':'Érase una vez, en un pequeño pueblo, vivía una niña llamada Lily. Cada noche, Lily miraba la hermosa luna por su ventana y se dormía con dulces sueños. Fin.','fr-FR':'Il était une fois, dans un petit village, vivait une enfant nommée Lily. Chaque nuit, Lily regardait la belle lune par sa fenêtre et s\'endormait avec de doux rêves. Fin.','vi-VN':'Ngày xửa ngày xưa, ở một ngôi làng nhỏ bên cạnh khu rừng yên tĩnh, có một đứa trẻ tên là Lily. Mỗi đêm, Lily nhìn qua cửa sổ phòng ngủ ngắm trăng đẹp và chìm vào giấc ngủ với những giấc mơ ngọt ngào. Hết.','zh-CN':'從前，在一個安靜的森林村莊裡，住著一個叫莉莉的孩子。每天晚上，莉莉透過臥室窗戶看著美麗的月亮，帶著甜美的夢入睡。故事結束。','de-DE':'Es war einmal in einem kleinen Dorf ein Kind namens Lily. Jede Nacht schaute Lily aus ihrem Schlafzimmerfenster auf den schönen Mond und schlief mit süßen Träumen ein. Ende.'}},
-  {title:{'en-US':'Oliver and the Sleepy Cloud','ko-KR':'올리버와 졸린 구름','ja-JP':'オリバーと眠たげな雲','es-ES':'Oliver y la Nube Somnolienta','fr-FR':'Oliver et le Nuage Endormi','vi-VN':'Oliver và đám mây buồn ngủ','zh-CN':'奧利弗與睏睏的雲','de-DE':'Oliver und die schläfrige Wolke'}, emoji:'☁️', text:{'en-US':'Oliver loved watching clouds from his garden. One afternoon, a fluffy cloud floated down and helped him relax before bedtime. The end.','ko-KR':'올리버는 정원에서 구름 보는 것을 좋아했어요. 어느 오후, 푹신한 구름이 내려와 잠자리에 들기 전 마음을 편안하게 해주었어요. 끝.','ja-JP':'オリバーは庭から雲を眺めるのが大好きでした。ある午後、フワフワした雲が浮かんできて、寝る前にリラックスさせてくれました。おしまい。','es-ES':'A Oliver le encantaba mirar las nubes desde su jardín. Una tarde, una nube esponjosa flotó hacia abajo y lo ayudó a relajarse antes de dormir. Fin.','fr-FR':'Oliver adorait regarder les nuages depuis son jardin. Un après-midi, un nuage moelleux a flotté et l\'a aidé à se détendre avant de se coucher. Fin.','vi-VN':'Oliver thích ngắm mây từ khu vườn của mình. Một buổi chiều, một đám mây bông xốp bay xuống và giúp cậu thư giãn trước giờ đi ngủ. Hết.','zh-CN':'奧利弗喜歡在花園裡看雲。一天下午，一朵蓬鬆的雲飄了下來，幫他在睡前放鬆身心。故事結束。','de-DE':'Oliver liebte es, von seinem Garten aus Wolken zu beobachten. Eines Nachmittags schwebte eine flauschige Wolke herab und half ihm, sich vor dem Schlafengehen zu entspannen. Ende.'}},
-  {title:{'en-US':'The Little Rabbit’s Cozy Burrow','ko-KR':'아기 토끼의 아늑한 굴','ja-JP':'ウサギさんの居心地の良い巣穴','es-ES':'La Madriguera del Conejito','fr-FR':'Le Terrier Confortable du Petit Lapin','vi-VN':'Hang ấm áp của thỏ con','zh-CN':'小兔子舒適的洞穴','de-DE':'Der gemütliche Bau des kleinen Kaninchens'}, emoji:'🐰', text:{'en-US':'Deep inside a peaceful woodland lived a little rabbit named Rosie. She hopped home to her cozy burrow, snuggled under her blanket, and fell fast asleep. The end.','ko-KR':'평화로운 숲 깊은 곳에 로지라는 아기 토끼가 살았어요. 아늑한 굴로 깡충깡충 뛰어와 이불을 덮고 깊은 잠에 빠졌답니다. 끝.','ja-JP':'平和な森の奥深くに、ロージーというウサギが住んでいました。彼女は居心地の良い巣穴へピョンピョン跳んで帰り、毛布にくるまってぐっすり眠りました。おしまい。','es-ES':'En lo profundo de un bosque pacífico vivía un conejito llamado Rosie. Saltó a su acogedora madriguera, se acurrucó bajo su manta y se durmió profundamente. Fin.','fr-FR':'Au fond d\'une forêt paisible vivait un petit lapin nommé Rosie. Elle a sauté dans son terrier douillet, s\'est blottie sous sa couverture et s\'est endormie. Fin.','vi-VN':'Sâu trong khu rừng yên bình có một chú thỏ nhỏ tên là Rosie. Chú nhảy về hang ấm áp, cuộn mình dưới chăn và ngủ say. Hết.','zh-CN':'在寧靜的森林深處，住著一隻叫羅西的小兔子。她蹦蹦跳跳地回到舒適的洞穴裡，縮在毯子底下，沉沉地睡着了。故事結束。','de-DE':'Tief in einem friedlichen Wald lebte ein kleines Kaninchen namens Rosie. Sie hoppelte in ihren gemütlichen Bau, kuschelte sich unter ihre Decke und schlief fest ein. Ende.'}},
-  {title:{'en-US':'The Star That Forgot to Twinkle','ko-KR':'반짝이는 법을 잊은 별','ja-JP':'またたくのを忘れた星','es-ES':'La Estrella que Olvidó Brillar','fr-FR':'L\'Étoile qui a Oublié de Scintiller','vi-VN':'Ngôi sao quên cách lấp lánh','zh-CN':'忘記閃爍的小星星','de-DE':'Der Stern, der das Funkeln vergaß'}, emoji:'⭐', text:{'en-US':'High above lived a little star named Sparkle. At first it could not shine, but taking a deep breath, it gave one tiny twinkle and made a child smile. The end.','ko-KR':'저 높은 곳에 스파클이라는 작은 별이 살았어요. 처음엔 빛나지 않았지만, 숨을 깊게 쉬고 반짝여서 아이를 미소 짓게 만들었어요. 끝.','ja-JP':'空の高いところにスパークルという小さな星が住んでいました。最初は光れませんでしたが、深く息を吸ってピカッと輝き、子供を笑顔にしました。おしまい。','es-ES':'Muy arriba vivía una estrellita llamada Sparkle. Al principio no podía brillar, pero respirando hondo dio un pequeño destello y hizo sonreír a un niño. Fin.','fr-FR':'Là-haut vivait une petite étoile nommée Sparkle. Au début, elle ne pouvait pas briller, mais en respirant profondément, elle a fait un petit scintillement et a fait sourire un enfant. Fin.','vi-VN':'Trên cao có một ngôi sao nhỏ tên là Sparkle. Lúc đầu nó không thể tỏa sáng, nhưng hít một hơi thật sâu và lấp lánh để làm một em bé mỉm cười. Hết.','zh-CN':'高空中住著一顆叫閃閃的小星星。起勁它無法發光，但深吸一口氣後，它輕輕閃爍了一下，讓一個孩子露出了微笑。故事結束。','de-DE':'Hoch oben lebte ein kleiner Stern namens Sparkle. Zuerst konnte er nicht leuchten, aber nach einem tiefen Atemzug funkelte er ein wenig und brachte ein Kind zum Lächeln. Ende.'}},
-  {title:{'en-US':'Milo’s Goodnight Train','ko-KR':'마일로의 굿나잇 기차','ja-JP':'マイロのグッドナイト列車','es-ES':'El Tren de las Buenas Noches de Milo','fr-FR':'Le Train du Bonsoir de Milo','vi-VN':'Chuyến tàu chúc ngủ ngon của Milo','zh-CN':'米洛的晚安火車','de-DE':'Milos Gute-Nacht-Zug'}, emoji:'🚂', text:{'en-US':'Milo arranged his toy train on the floor. In his imagination, the train travelled quietly through Dreamland until Milo fell fast asleep. The end.','ko-KR':'마일로는 바닥에 장난감 기차를 늘어놓았어요. 상상 속에서 기차는 꿈나라를 조용히 달렸고, 마일로도 깊은 잠에 빠졌답니다. 끝.','ja-JP':'マイロは床におもちゃの列車を並べました。想像の中で、列車は夢の国を静かに走り、マイロもぐっすり眠りました。おしまい。','es-ES':'Milo organizó su tren de juguete en el suelo. En su imaginación, el tren viajaba silenciosamente por el País de los Sueños hasta que Milo se durmió. Fin.','fr-FR':'Milo a arrangé son train jouet sur le sol. Dans son imagination, le train a voyagé silencieusement à travers le Pays des Rêves jusqu\'à ce que Milo s\'endorme. Fin.','vi-VN':'Milo xếp đoàn tàu đồ chơi trên sàn nhà. Trong trí tưởng tượng, đoàn tàu chạy nhẹ nhàng qua Xứ sở Giấc mơ cho đến khi Milo ngủ thiếp đi. Hết.','zh-CN':'米洛在地板上排好他的玩具火車。在想像中，火車安靜地穿過夢幻島，直到米洛沉沉睡去。故事結束。','de-DE':'Milo stellte seine Spielzeugeisenbahn auf den Boden auf. In seiner Fantasie fuhr der Zug leise durch das Traumland, bis Milo fest einschlief. Ende.'}},
-  {title:{'en-US':'The Firefly’s Little Lantern','ko-KR':'반딧불이의 작은 랜턴','ja-JP':'ホタルの小さなランタン','es-ES':'La Pequeña Linterna de la Luciérnaga','fr-FR':'La Petite Lanterne de la Luciole','vi-VN':'Chiếc đèn lồng nhỏ của đom đóm','zh-CN':'螢火蟲的小燈籠','de-DE':'Die kleine Laterne des Glühwürmchens'}, emoji:'✨', text:{'en-US':'Finn the firefly used his tiny glowing light to guide a tired caterpillar safely home beneath the green leaves. The end.','ko-KR':'반딧불이 핀은 작고 반짝이는 빛으로 지친 애벌레가 초록 잎사귀 아래 집으로 안전하게 찾아가도록 도와주었어요. 끝.','ja-JP':'ホタルのフィンは、その小さな光を使って、疲れた毛虫を緑の葉の下の安全なおうちまで案内しました。おしまい。','es-ES':'Finn la luciérniga usó su pequeña luz brillante para guiar a una oruga cansada a casa de forma segura bajo las hojas verdes. Fin.','fr-FR':'Finn la luciole a utilisé sa petite lumière brillante pour guider une chenille fatiguée chez elle en toute sécurité sous les feuilles vertes. Fin.','vi-VN':'Chú đom đóm Finn dùng ánh sáng nhỏ bé của mình để dẫn đường cho chú sâu mệt mỏi về nhà an toàn dưới những chiếc lá xanh. Hết.','zh-CN':'螢火蟲芬恩用微弱的光芒，指引一隻疲憊的毛毛蟲安全回到綠葉下的家。故事結束。','de-DE':'Das Glühwürmchen Finn nutzte sein kleines Leuchten, um eine müde Raupe sicher unter den grünen Blättern nach Hause zu führen. Ende.'}},
-  {title:{'en-US':'Nora and the Gentle Sea','ko-KR':'노라와 부드러운 바다','ja-JP':'ノラとやさしい海','es-ES':'Nora y el Mar apacible','fr-FR':'Nora et la Mer Douce','vi-VN':'Nora và biển hiền hòa','zh-CN':'諾拉與溫柔的大海','de-DE':'Nora und das sanfte Meer'}, emoji:'🌊', text:{'en-US':'Nora listened to the gentle waves rolling onto the sand with her grandfather. That night, she closed her eyes and imagined the ocean singing a soft lullaby. The end.','ko-KR':'노라는 할아버지와 함께 모래사장 위로 부드럽게 밀려오는 파도 소리를 들었어요. 그날 밤, 그녀는 두 눈을 감고 바다가 불러주는 부드러운 자장가를 상상했어요. 끝.','ja-JP':'ノラは祖父と一緒に、砂浜に穏やかに打ち寄せる波の音を聞きました。その夜、彼女は目を閉じて、海が優しい子守唄を歌っているのを想像しました。おしまい。','es-ES':'Nora escuchó las suaves olas que rodaban sobre la arena con su abuelo. Esa noche, cerró los ojos y se imaginó al océano cantando una suave canción de cuna. Fin.','fr-FR':'Nora a écouté les vagues douces rouler sur le sable avec son grand-père. Cette nuit-là, elle a fermé les yeux et a imaginé l\'océan chantant une douce berceuse. Fin.','vi-VN':'Nora lắng nghe những con sóng hiền hòa vỗ vào bạt cát cùng ông của mình. Đêm đó, cô bé nhắm mắt lại và tưởng tượng đại cương đang hát một khúc ru êm dịu. Hết.','zh-CN':'諾拉和爺爺一起聽著輕柔的海浪拍打沙灘的聲音。那天晚上，她閉上眼睛，想像著大海唱著柔和的搖籃曲。故事結束。','de-DE':'Nora hörte mit ihrem Großvater zu, wie die sanften Wellen an den Strand rollten. In dieser Nacht schloss sie die Augen und stellte sich vor, der Ozean würde ein sanftes Wiegenlied singen. Ende.'}},
-  {title:{'en-US':'The Bear Who Shared the Stars','ko-KR':'별을 나누어 준 곰','ja-JP':'星を分け合ったクマ','es-ES':'El Oso que Compartió las Estrellas','fr-FR':'L\'Ours qui a Partagé les Étoiles','vi-VN':'Chú gấu chia sẻ những vì sao','zh-CN':'分享星星的熊','de-DE':'Der Bär, der die Sterne teilte'}, emoji:'🐻', text:{'en-US':'Bruno the bear invited forest friends to look up at the shining sky together. Sharing wonderful moments makes them even better. The end.','ko-KR':'곰 브루노는 숲속 친구들을 초대해 함께 빛나는 밤하늘을 올려다보았어요. 멋진 순간을 나누면 더욱 행복해진답니다. 끝.','ja-JP':'クマのブルーノは森の仲間たちを招いて、一緒に輝く夜空を見上げました。素敵な瞬間を分かち合うと、もっと楽しくなります。おしまい。','es-ES':'Bruno el oso invitó a los amigos del bosque a mirar juntos el cielo brillante. Compartir momentos maravillosos los hace aún mejores. Fin.','fr-FR':'Bruno l\'ours a invité ses amis de la forêt à admirer ensemble le ciel scintillant. Partager de merveilleux moments les rend encore meilleurs. Fin.','vi-VN':'Chú gấu Bruno mời những người bạn trong rừng cùng ngắm nhìn bầu trời rực rỡ. Chia sẻ những khoảnh khắc tuyệt vời làm chúng trở nên tuyệt vời hơn nữa. Hết.','zh-CN':'熊布魯諾邀請森林裡的朋友們一起仰望閃爍的夜空。分享美好的時刻會讓一切變得更美好。故事結束。','de-DE':'Der Bär Bruno lud Waldfreunde ein, gemeinsam in den leuchtenden Himmel zu blicken. Wundervolle Momente zu teilen, macht sie noch schöner. Ende.'}},
-  {title:{'en-US':'The Sleepy Dinosaur','ko-KR':'졸린 공룡','ja-JP':'ねむそうな恐竜','es-ES':'El Dinosaurio Somnoliento','fr-FR':'Le Dinosaure Endormi','vi-VN':'Chú khủng long buồn ngủ','zh-CN':'愛睡覺的恐龍','de-DE':'Der schläfrige Dinosaurier'}, emoji:'🦕', text:{'en-US':'After a busy day of splashing in rivers, little Dino curled his tail, listened to a bedtime story, and fell fast asleep under a leafy tree. The end.','ko-KR':'강가에서 신나게 물놀이를 한 바쁜 하루 뒤, 아기 공룡 디노는 꼬리를 말고 이파리 무성한 나무 아래에서 자장가를 들으며 깊이 잠들었어요. 끝.','ja-JP':'川で水遊びをして忙しかった一日のあと、小さな恐竜のディノはしっぽを丸め、木の下で絵本を聞きながらぐっすり眠りました。おしまい。','es-ES':'Después de un día ajetreado, el pequeño Dino acurrucó su cola y se durmió profundamente bajo un árbol frondoso. Fin.','fr-FR':'Après une journée bien remplie, le petit Dino a enroulé sa queue et s\'est endormi profondément sous un arbre feuillu. Fin.','vi-VN':'Sau một ngày bận rộn vẫy vùng dưới sông, chú khủng long nhỏ Dino cuộn đuôi lại, nghe kể chuyện và ngủ say dưới tán cây rợp bóng. Hết.','zh-CN':'在河邊嬉戲忙碌了一天之後，小恐龍迪諾捲起尾巴，在茂密的樹下聽著睡前故事，沉沉睡去。故事結束。','de-DE':'Nach einem geschäftigen Tag rollte der kleine Dino seinen Schwanz ein und schlief unter einem belaubten Baum tief und fest ein. Ende.'}},
-  {title:{'en-US':'The Little Boat’s Quiet Journey','ko-KR':'작은 배의 조용한 항해','ja-JP':'小さなボートの静かな旅','es-ES':'El Viaje Tranquilo del Barquito','fr-FR':'Le Voyage Tranquille du Petit Bateau','vi-VN':'Hành trình yên bình của chiếc thuyền nhỏ','zh-CN':'小船的靜謐之旅','de-DE':'Die ruhige Reise des kleinen Bootes'}, emoji:'⛵', text:{'en-US':'Bluebell the wooden boat drifted peacefully across the moonlit lake alongside a friendly duck until returning safely to the dock. The end.','ko-KR':'나무 배 블루벨은 달빛이 비치는 호수 위를 오리와 함께 평화롭게 떠다니다가 안전하게 부두로 돌아왔어요. 끝.','ja-JP':'木のボートのブルーベルは、優しいアールと一緒に月明かりの湖を平和に漂い、無事に桟橋に戻りました。おしまい。','es-ES':'El barquito de madera Bluebell flotó pacíficamente por el lago iluminado por la luna junto a un pato amigable hasta regresar al muelle. Fin.','fr-FR':'Le petit bateau en bois Bluebell a dérivé paisiblement sur le lac éclairé par la lune aux côtés d\'un canard amical jusqu\'à ce qu\'il revienne au quai. Fin.','vi-VN':'Chiếc thuyền gỗ Bluebell lững lờ trôi trên mặt hồ soi bóng trăng cùng chú vịt thân thiện cho đến khi trở về bến an toàn. Hết.','zh-CN':'木船藍鈴在月光灑滿的湖面上與一隻友善的鴨子平靜地漂流，直到安全返回碼頭。故事結束。','de-DE':'Das Holzboot Bluebell driftete friedlich über den mondbeschienenen See neben einer freundlichen Ente, bis es sicher zum Steg zurückkehrte. Ende.'}},
-  {title:{'en-US':'Poppy’s Pillow of Clouds','ko-KR':'포피의 구름 베개','ja-JP':'ポッピーの雲の枕','es-ES':'La Almohada de Nubes de Poppy','fr-FR':'L\'Oreiller de Nuages de Poppy','vi-VN':'Chiếc gối mây của Poppy','zh-CN':'波比的雲朵枕頭','de-DE':'Poppys Kissen aus Wolken'}, emoji:'🌤️', text:{'en-US':'In her dream, Poppy floated on a giant cloud pillow high above the town, covered warmly in a blanket of moonlight. The end.','ko-KR':'꿈속에서 포피는 마을 위 높은 곳에서 거대한 구름 베개를 타고 둥둥 떠다니며 달빛 이불을 덮었어요. 끝.','ja-JP':'夢の中で、ポッピーは町の上の高い空で巨大な雲の枕に乗り、月明かりの毛布に温かく包まれました。おしまい。','es-ES':'En su sueño, Poppy flotaba en una almohada de nube gigante sobre la ciudad, cubierta cálidamente con una manta de luz lunar. Fin.','fr-FR':'Dans son rêve, Poppy flottait sur un oreiller de nuage géant au-dessus de la ville, chaudement couverte d\'une couverture de clair de lune. Fin.','vi-VN':'Trong giấc mơ, Poppy bay bổng trên chiếc gối mây khổng lồ phía trên thị trấn, được đắp ấm áp trong tấm chăn ánh trăng. Hết.','zh-CN':'在夢中，波比飄浮在城鎮上空巨大的雲朵枕頭上，身上蓋著溫暖的月光毯子。故事結束。','de-DE':'In ihrem Traum schwebte Poppy auf einem riesigen Wolkenkissen hoch über der Stadt, warm eingehüllt in eine Decke aus Mondlicht. Ende.'}},
-  {title:{'en-US':'The Kindness Garden','ko-KR':'친절의 정원','ja-JP':'親切の庭','es-ES':'El Jardín de la Amabilidad','fr-FR':'Le Jardin de la Gentillesse','vi-VN':'Khu vườn lòng tốt','zh-CN':'善良的花園','de-DE':'Der Garten der Freundlichkeit'}, emoji:'🌷', text:{'en-US':'Emma helped water thirsty flowers in the village garden every day, learning that small acts of kindness make the world bloom. The end.','ko-KR':'엠마는 마을 정원에서 목마른 꽃들에게 매일 물을 주며, 작은 친절이 세상을 활짝 피우게 한다는 것을 배웠어요. 끝.','ja-JP':'エマは村の庭で喉が渇いた花に毎日水をやり、小さな優しさが世界を美しく花開かせることを学びました。おしまい。','es-ES':'Emma ayudó a regar las flores sedientas en el jardín del pueblo todos los días, aprendiendo que los actos de bondad hacen florecer el mundo. Fin.','fr-FR':'Emma a aidé à arroser les fleurs assoiffées dans le jardin du village chaque jour, apprenant que de petits actes de gentillesse font fleurir le monde. Fin.','vi-VN':'Emma giúp tưới nước cho những bông hoa đang khát nước trong vườn mỗi ngày, học được rằng những hành động tử tế nhỏ bé làm thế giới rực rỡ hơn. Hết.','zh-CN':'艾瑪每天幫村裡花園口渴的花朵澆水，學會了微小的善舉能讓世界綻放光彩。故事結束。','de-DE':'Emma half jeden Tag, durstige Blumen im Dorfgarten zu gießen, und lernte, dass kleine Akte der Freundlichkeit die Welt erblühen lassen. Ende.'}},
-  {title:{'en-US':'Goodnight, Little Woodland','ko-KR':'굿나잇, 작은 숲속','ja-JP':'おやすみ、小さな森','es-ES':'Buenas Noches, Pequeño Bosque','fr-FR':'Bonne Nuit, Petite Forêt','vi-VN':'Chúc ngủ ngon, khu rừng nhỏ','zh-CN':'晚安，小森林','de-DE':'Gute Nacht, kleiner Wald'}, emoji:'🌳', text:{'en-US':'As the sun went down, the rabbits, birds, and owls whispered goodnight to each other beneath the peaceful glowing moon. The end.','ko-KR':'해가 지자 토끼, 새, 부엉이들은 평화로운 달빛 아래 서로에게 굿나잇 인사를 속삭였어요. 끝.','ja-JP':'日が沈むと、ウサギや小鳥、フクロウたちが、穏やかな月明かりの下でお互いにおやすみなさいとささやきました。おしまい。','es-ES':'Cuando el sol se puso, los conejos, pájaros y búhos se susurraron las buenas noches bajo la luna brillante. Fin.','fr-FR':'Alors que le soleil se couchait, les lapins, les oiseaux et les hiboux se chuchotaient bonsoir sous la lune paisible. Fin.','vi-VN':'Khi mặt trời lặn, những chú thỏ, chú chim và cú mèo thì thầm chúc nhau ngủ ngon dưới ánh trăng bình yên. Hết.','zh-CN':'當太陽下山時，兔子、小鳥和貓頭鷹在寧靜的月光下互相輕聲說晚安。故事結束。','de-DE':'Als die Sonne unterging, flüßerten sich Kaninchen, Vögel und Eulen unter dem friedlichen Mond eine gute Nacht zu. Ende.'}}
-];
-
-function changeAppLanguage(lang) {
-  currentLang = lang;
-  const dict = translations[lang] || translations['en-US'];
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (dict[key]) el.textContent = dict[key];
-  });
-  renderABCs();
-  renderStories();
-  newMathQuestion();
-  setVoiceStatus('Language updated to ' + lang, 'success');
-}
-
 const voiceAudio = document.getElementById('voiceAudio');
 const voiceStatus = document.getElementById('voiceStatus');
 let speechWatchdog = null;
@@ -234,6 +167,9 @@ let speechRunId = 0;
 let audioChunks = [];
 let audioChunkIndex = 0;
 let currentMode = '';
+let currentUtterance = null;
+let currentSpeechText = '';
+let currentLang = 'en-US';
 
 function setVoiceStatus(message, type='info') {
   voiceStatus.textContent = message;
@@ -243,7 +179,6 @@ function setVoiceStatus(message, type='info') {
      type === 'playing' ? 'bg-sky-950 text-sky-200' :
      'bg-slate-800 text-amber-200');
 }
-
 function stopKidAudio() {
   speechRunId++;
   if (speechWatchdog) clearTimeout(speechWatchdog);
@@ -253,216 +188,380 @@ function stopKidAudio() {
   audioChunks = [];
   audioChunkIndex = 0;
   currentMode = '';
-  setVoiceStatus('Voice stopped.');
+  currentUtterance = null;
+  setVoiceStatus('Voice stopped. Tap a lesson or Test Voice to listen again.');
 }
-
-function onlineSpeechUrl(text, lang) {
-  const params = new URLSearchParams({ie:'UTF-8', client:'tw-ob', tl: lang, q: text});
+function splitForSpeech(text, maxLength=170) {
+  const words = String(text).trim().split(/\s+/);
+  const chunks = [];
+  let part = '';
+  for (const word of words) {
+    const next = part ? part + ' ' + word : word;
+    if (next.length > maxLength && part) { chunks.push(part); part = word; }
+    else part = next;
+  }
+  if (part) chunks.push(part);
+  return chunks;
+}
+function onlineSpeechUrl(text, lang='en-US') {
+  const params = new URLSearchParams({ie:'UTF-8', client:'tw-ob', tl: lang, q:text});
   return 'https://translate.google.com/translate_tts?' + params.toString();
 }
-
 function playOnlineChunk(runId) {
   if (runId !== speechRunId) return;
   if (audioChunkIndex >= audioChunks.length) {
     currentMode = '';
-    setVoiceStatus('Narration finished.', 'success');
+    setVoiceStatus('Narration finished. Tap again to replay.', 'success');
     return;
   }
   const chunk = audioChunks[audioChunkIndex];
   voiceAudio.src = onlineSpeechUrl(chunk, currentLang);
   voiceAudio.load();
-  voiceAudio.play().catch(() => {});
+  setVoiceStatus('Playing spoken narration…', 'playing');
+  const playPromise = voiceAudio.play();
+  if (playPromise && typeof playPromise.then === 'function') {
+    playPromise.then(() => {
+      if (runId === speechRunId) currentMode = 'audio';
+    }).catch(err => {
+      if (runId !== speechRunId) return;
+      currentMode = '';
+      setVoiceStatus('Audio playback was blocked or the voice service could not be reached.', 'error');
+    });
+  }
 }
-
 voiceAudio.addEventListener('ended', () => {
+  if (currentMode === 'recorded') {
+    currentMode = '';
+    setVoiceStatus('Story finished. Tap Read to Me to listen again.', 'success');
+    return;
+  }
+  if (currentMode !== 'audio') return;
+  audioChunkIndex++;
+  playOnlineChunk(speechRunId);
+});
+voiceAudio.addEventListener('error', () => {
+  if (currentMode === 'recorded') {
+    const runId = speechRunId;
+    currentMode = '';
+    startOnlineFallback(currentSpeechText, runId);
+    return;
+  }
   if (currentMode === 'audio') {
-    audioChunkIndex++;
-    playOnlineChunk(speechRunId);
+    currentMode = '';
+    setVoiceStatus('Online narration could not load.', 'error');
   }
 });
-
-function speakText(text) {
-  const cleanText = String(text || '').trim();
-  if (!cleanText) return;
-  stopKidAudio();
-  const runId = speechRunId;
-  setVoiceStatus('Speaking...', 'playing');
-
-  if (window.responsiveVoice && typeof responsiveVoice.speak === 'function') {
-    let rvVoice = 'UK English Female';
-    if (currentLang.startsWith('es')) rvVoice = 'Spanish Female';
-    if (currentLang.startsWith('fr')) rvVoice = 'French Female';
-    if (currentLang.startsWith('vi')) rvVoice = 'US English Female';
-    if (currentLang.startsWith('zh')) rvVoice = 'Chinese Female';
-    if (currentLang.startsWith('ko')) rvVoice = 'Korean Female';
-    if (currentLang.startsWith('ja')) rvVoice = 'Japanese Female';
-    if (currentLang.startsWith('de')) rvVoice = 'Deutsch Female';
-
-    try {
-      responsiveVoice.speak(cleanText, rvVoice, {
-        rate: 0.9,
-        onend: () => { if(runId === speechRunId) setVoiceStatus('Finished.', 'success'); },
-        onerror: () => { fallbackGoogleTTS(cleanText, runId); }
-      });
-      return;
-    } catch(e) {}
+function startOnlineFallback(text, runId) {
+  if (runId !== speechRunId) return;
+  if (!navigator.onLine) {
+    setVoiceStatus('No internet connection.', 'error');
+    return;
   }
-  fallbackGoogleTTS(cleanText, runId);
-}
-
-function fallbackGoogleTTS(text, runId) {
-  audioChunks = [text];
+  audioChunks = splitForSpeech(text);
   audioChunkIndex = 0;
   currentMode = 'audio';
   playOnlineChunk(runId);
+}
+function speakText(text) {
+  const cleanText = String(text || '').trim();
+  if (!cleanText) return;
+
+  try {
+    if (window.responsiveVoice && typeof responsiveVoice.cancel === 'function') {
+      responsiveVoice.cancel();
+    }
+  } catch (e) {}
+
+  stopKidAudio();
+  const runId = speechRunId;
+  currentSpeechText = cleanText;
+  setVoiceStatus('Preparing voice…', 'playing');
+
+  if (window.responsiveVoice && typeof responsiveVoice.speak === 'function') {
+    let rvVoice = 'UK English Female';
+    if (currentLang === 'es-ES') rvVoice = 'Spanish Female';
+    if (currentLang === 'fr-FR') rvVoice = 'French Female';
+    if (currentLang === 'vi-VN') rvVoice = 'Vietnamese Female';
+    if (currentLang === 'zh-CN') rvVoice = 'Chinese Female';
+    if (currentLang === 'ko-KR') rvVoice = 'Korean Female';
+    if (currentLang === 'ja-JP') rvVoice = 'Japanese Female';
+    if (currentLang === 'ar-SA') rvVoice = 'Arabic Female';
+
+    try {
+      responsiveVoice.speak(cleanText, rvVoice, {
+        rate: 0.88,
+        pitch: 1.08,
+        volume: 1,
+        onstart: () => {
+          if (runId !== speechRunId) return;
+          currentMode = 'responsive';
+          setVoiceStatus('Speaking…', 'playing');
+        },
+        onend: () => {
+          if (runId !== speechRunId) return;
+          currentMode = '';
+          setVoiceStatus('Narration finished.', 'success');
+        },
+        onerror: () => {
+          if (runId !== speechRunId) return;
+          currentMode = '';
+          startOnlineFallback(cleanText, runId);
+        }
+      });
+      return;
+    } catch (e) {}
+  }
+  startOnlineFallback(cleanText, runId);
 }
 
 function testVoice() {
   const greetings = {
     'en-US': 'Hello children! Welcome to APEX Kids Academy.',
-    'ko-KR': '어린이 여러분 안녕하십니까! 에이펙스 키즈 아카데미에 오신 것을 환영합니다.',
-    'ja-JP': 'お友達のみんな、こんにちは！APEXキッズアカデミーへようこそ。',
-    'es-ES': '¡Hola niños! Bienvenidos a APEX Kids Academy.',
-    'fr-FR': 'Bonjour les enfants ! Bienvenue à APEX Kids Academy.',
     'vi-VN': 'Xin chào các em! Chào mừng đến với Học viện APEX Kids.',
     'zh-CN': '小朋友們好！歡迎來到 APEX 兒童學院。',
-    'de-DE': 'Hallo Kinder! Willkommen an der APEX Kids Academy.'
+    'ar-SA': 'أهلاً بك أيها الطفل في أكاديمية أبيكس للأطفال.',
+    'fr-FR': 'Bonjour les enfants ! Bienvenue à APEX Kids Academy.',
+    'ko-KR': '어린이 여러분 환영합니다! 에이펙스 키즈 아카데미입니다.',
+    'ja-JP': 'お友達のみんな、こんにちは！APEXキッズアカデミーへようこそ。'
   };
   speakText(greetings[currentLang] || greetings['en-US']);
 }
-
 function checkVoice() {
   setVoiceStatus('Voice system active for ' + currentLang, 'success');
 }
 
+const tabStyles = {
+  abc:'kid-btn bg-pink-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
+  math:'kid-btn bg-sky-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
+  stories:'kid-btn bg-emerald-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
+  draw:'kid-btn bg-amber-500 text-slate-950 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg'
+};
+const defaultTabColors = {abc:'text-pink-300',math:'text-sky-300',stories:'text-emerald-300',draw:'text-amber-300'};
+function showKidTab(tab) {
+  stopKidAudio();
+  ['abc','math','stories','draw'].forEach(t => {
+    document.getElementById('ksec-'+t).classList.toggle('hidden',t!==tab);
+    document.getElementById('ktab-'+t).className = t===tab ? tabStyles[t] :
+      `kid-btn bg-slate-800 ${defaultTabColors[t]} py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1`;
+  });
+  if (tab==='draw') resizeKidCanvas();
+}
+
+const abcTranslations = {
+  'en-US': {
+    'A': 'A is for Apple', 'B': 'B is for Bear', 'C': 'C is for Cat', 'D': 'D is for Dog',
+    'E': 'E is for Elephant', 'F': 'F is for Fish', 'G': 'G is for Giraffe', 'H': 'H is for House',
+    'I': 'I is for Ice Cream', 'J': 'J is for Juice', 'K': 'K is for Kite', 'L': 'L is for Lion',
+    'M': 'M is for Moon', 'N': 'N is for Nest', 'O': 'O is for Owl', 'P': 'P is for Penguin',
+    'Q': 'Q is for Queen', 'R': 'R is for Rainbow', 'S': 'S is for Sun', 'T': 'T is for Tiger',
+    'U': 'U is for Umbrella', 'V': 'V is for Violin', 'W': 'W is for Whale', 'X': 'X is for Xylophone',
+    'Y': 'Y is for Yo-yo', 'Z': 'Z is for Zebra'
+  },
+  'vi-VN': {
+    'A': 'A là quả táo', 'B': 'B là con gấu', 'C': 'C là con mèo', 'D': 'D là con chó',
+    'E': 'E là con voi', 'F': 'F là con cá', 'G': 'G là hươu cao cổ', 'H': 'H là ngôi nhà',
+    'I': 'I là kem', 'J': 'J là nước trái cây', 'K': 'K là con diều', 'L': 'L là sư tử',
+    'M': 'M là mặt trăng', 'N': 'N là tổ chim', 'O': 'O là con cú', 'P': 'P là chim cánh cụt',
+    'Q': 'Q là nữ hoàng', 'R': 'R là cầu vồng', 'S': 'S là mặt trời', 'T': 'T là con hổ',
+    'U': 'U là cái ô', 'V': 'V là đàn vĩ cầm', 'W': 'W là cá voi', 'X': 'X là đàn mộc cầm',
+    'Y': 'Y là đồ chơi yo-yo', 'Z': 'Z là ngựa vằn'
+  },
+  'zh-CN': {
+    'A': 'a 代表苹果', 'B': 'b 代表熊', 'C': 'c 代表猫', 'D': 'd 代表狗',
+    'E': 'e 代表大象', 'F': 'f 代表鱼', 'G': 'g 代表长颈鹿', 'H': 'h 代表房子',
+    'I': 'i 代表冰淇淋', 'J': 'j 代表果汁', 'K': 'k 代表风筝', 'L': 'l 代表狮子',
+    'M': 'm 代表月亮', 'N': 'n 代表鸟巢', 'O': 'o 代表猫头鹰', 'P': 'p 代表企鹅',
+    'Q': 'q 代表女王', 'R': 'r 代表彩虹', 'S': 's 代表太阳', 'T': 't 代表老虎',
+    'U': 'u 代表雨伞', 'V': 'v 代表小提琴', 'W': 'w 代表鲸鱼', 'X': 'x 代表木琴',
+    'Y': 'y 代表溜溜球', 'Z': 'z 代表斑马'
+  },
+  'ar-SA': {
+    'A': 'حرف الألف يرمز إلى التفاحة', 'B': 'حرف الباء يرمز إلى الدب', 'C': 'حرف الجيم يرمز إلى القط', 'D': 'حرف الدال يرمز إلى الكلب',
+    'E': 'حرف الهاء يرمز إلى الفيل', 'F': 'حرف الواو يرمز إلى السمكة', 'G': 'حرف الزาย يرمز إلى الزرافة', 'H': 'حرف الحاء يرمز إلى البيت',
+    'I': 'حرف الياء يرمز إلى المثلجات', 'J': 'حرف الكاف يرمز إلى العصير', 'K': 'حرف اللام يرمز إلى الطائرة الورقية', 'L': 'حرف الميم يرمز إلى الأسد',
+    'M': 'حرف النون يرمز إلى القمر', 'N': 'حرف العين يرمز إلى العش', 'O': 'حرف الباء يرمز إلى البومة', 'P': 'حرف القاف يرمز إلى البطريق',
+    'Q': 'حرف الكاف يرمز إلى الملكة', 'R': 'حرف الراء يرمز إلى قزح', 'S': 'حرف السين يرمز إلى الشمس', 'T': 'حرف التاء يرمز إلى النمر',
+    'U': 'حرف الميم يرمز إلى المظلة', 'V': 'حرف الفاء يرمز إلى الكمنجة', 'W': 'حرف الحاء يرمز إلى الحوت', 'X': 'حرف الخاء يرمز إلى السيلوفون',
+    'Y': 'حرف اليو يرمز إلى اليويو', 'Z': 'حرف الزاي يرمز إلى الحمار الوحشي'
+  },
+  'fr-FR': {
+    'A': 'A comme « pomme »', 'B': 'B comme « ours »', 'C': 'C comme « chat »', 'D': 'D comme « chien »',
+    'E': 'E comme « éléphant »', 'F': 'F comme « poisson »', 'G': 'G comme « girafe »', 'H': 'H comme « maison »',
+    'I': 'I comme « glace »', 'J': 'J comme « jus »', 'K': 'K comme « cerf-volant »', 'L': 'L comme « lion »',
+    'M': 'M comme « lune »', 'N': 'N comme « nid »', 'O': 'O comme « hibou »', 'P': 'P comme « manchot »',
+    'Q': 'Q comme « reine »', 'R': 'R comme « arc-en-ciel »', 'S': 'S comme « soleil »', 'T': 'T comme « tigre »',
+    'U': 'U comme « parapluie »', 'V': 'V comme « violon »', 'W': 'W comme « baleine »', 'X': 'X comme « xylophone »',
+    'Y': 'Y comme « yo-yo »', 'Z': 'Z comme « zèbre »'
+  },
+  'ko-KR': {
+    'A': 'A는 사과를 의미합니다', 'B': 'B는 곰을 의미합니다', 'C': 'C는 고양이를 의미합니다', 'D': 'D는 강아지를 의미합니다',
+    'E': 'E는 코끼리를 의미합니다', 'F': 'F는 물고기를 의미합니다', 'G': 'G는 기린을 의미합니다', 'H': 'H는 집을 의미합니다',
+    'I': 'I는 아이스크림을 의미합니다', 'J': 'J는 주스를 의미합니다', 'K': 'K는 연을 의미합니다', 'L': 'L은 사자를 의미합니다',
+    'M': 'M은 달을 의미합니다', 'N': 'N은 새집을 의미합니다', 'O': 'O는 부엉이를 의미합니다', 'P': 'P는 펭귄을 의미합니다',
+    'Q': 'Q는 여왕을 의미합니다', 'R': 'R은 무지개를 의미합니다', 'S': 'S는 태양을 의미합니다', 'T': 'T는 호랑이를 의미합니다',
+    'U': 'U는 우산을 의미합니다', 'V': 'V는 바이올린을 의미합니다', 'W': 'W는 고래를 의미합니다', 'X': 'X는 실로폰을 의미합니다',
+    'Y': 'Y는 요요를 의미합니다', 'Z': 'Z는 얼룩말을 의미합니다'
+  },
+  'ja-JP': {
+    'A': 'AはアップルのA', 'B': 'BはクマのB', 'C': 'CはネコのC', 'D': 'DはイヌのD',
+    'E': 'EはゾウのE', 'F': 'FはサカナのF', 'G': 'GはキリンのG', 'H': 'HはいえのH',
+    'I': 'IはアイスのI', 'J': 'JはジュースのJ', 'K': 'KはたこのK', 'L': 'LはライオンのL',
+    'M': 'MはつきのM', 'N': 'NはすのN', 'O': 'OはフクロウのO', 'P': 'PはペンギンのP',
+    'Q': 'Qは女王のQ', 'R': 'RはにじのR', 'S': 'SはたいようのS', 'T': 'TはトラのT',
+    'U': 'UはかさのU', 'V': 'VはバイオリンのV', 'W': 'WはクジラのW', 'X': 'XはもっきんのX',
+    'Y': 'YはヨーヨーのY', 'Z': 'ZはシマウマのZ'
+  }
+};
+
+const abcEmojis = {
+  'A': '🍎', 'B': '🐻', 'C': '🐱', 'D': '🐶', 'E': '🐘', 'F': '🐠',
+  'G': '🦒', 'H': '🏠', 'I': '🍦', 'J': '🧃', 'K': '🪁', 'L': '🦁',
+  'M': '🌙', 'N': '🪺', 'O': '🦉', 'P': '🐧', 'Q': '👑', 'R': '🌈',
+  'S': '☀️', 'T': '🐯', 'U': '☂️', 'V': '🎻', 'W': '🐳', 'X': '🎼',
+  'Y': '🪀', 'Z': '🦓'
+};
+
 function renderABCs() {
   const abcGrid = document.getElementById('abcGrid');
   abcGrid.innerHTML = '';
-  abcData.forEach(item => {
-    const wordText = item.w[currentLang] || item.w['en-US'];
+  const currentDict = abcTranslations[currentLang] || abcTranslations['en-US'];
+
+  Object.keys(currentDict).forEach(letter => {
+    const text = currentDict[letter];
+    const emoji = abcEmojis[letter];
     const btn = document.createElement('button');
     btn.className = 'kid-btn kid-card p-3 flex flex-col items-center justify-center hover:border-pink-400';
-    btn.innerHTML = `<span class="text-xl font-black text-white">${item.l}</span><span class="text-lg">${item.e}</span>`;
+    btn.innerHTML = `<span class="text-xl font-black text-white">${letter}</span><span class="text-lg">${emoji}</span>`;
+    btn.setAttribute('aria-label', text);
     btn.onclick = () => {
-      currentSpokenWord = `${item.l}. ${item.l} is for ${wordText}.`;
-      document.getElementById('abcDisplayEmoji').textContent = item.e;
-      document.getElementById('abcDisplayWord').textContent = `${item.l} is for ${wordText}`;
-      speakText(currentSpokenWord);
+      document.getElementById('abcDisplayEmoji').textContent = emoji;
+      document.getElementById('abcDisplayWord').textContent = text;
+      speakText(text);
     };
     abcGrid.appendChild(btn);
   });
 }
 
-function renderStories() {
-  const storyList = document.getElementById('storyList');
-  storyList.innerHTML = '';
-  kidStories.forEach(st => {
-    const titleText = st.title[currentLang] || st.title['en-US'];
-    const bodyText = st.text[currentLang] || st.text['en-US'];
-    const listenLabel = translations[currentLang]?.listen || 'Listen';
-
-    const card = document.createElement('div');
-    card.className = 'bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3';
-    card.innerHTML = `
-      <div class='flex items-center justify-between gap-2'>
-        <h3 class='text-sm font-black text-white'>${st.emoji} ${titleText}</h3>
-        <button class='kid-btn px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black' onclick="speakText('${titleText}. ${bodyText}')">
-          <i class='fa-solid fa-play mr-1'></i> ${listenLabel}
-        </button>
-      </div>
-      <p class='text-xs text-gray-300 leading-relaxed'>${bodyText}</p>
-    `;
-    storyList.appendChild(card);
-  });
+function changeAppLanguage(lang) {
+  currentLang = lang;
+  renderABCs();
+  newMathQuestion();
+  setVoiceStatus('Language updated to ' + lang, 'success');
 }
 
-function showKidTab(tab) {
-  stopKidAudio();
-  ['abc','math','stories','draw'].forEach(t => {
-    document.getElementById('ksec-'+t).classList.toggle('hidden',t!==tab);
-    document.getElementById('ktab-'+t).className = t===tab ? 
-      'kid-btn bg-pink-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg' :
-      'kid-btn bg-slate-800 text-sky-300 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1';
-  });
-  if (tab==='draw') resizeKidCanvas();
-}
-
-let currentMathAns = 5;
+let currentMathAns=5;
 function newMathQuestion() {
-  const a = Math.floor(Math.random()*9)+1;
-  const b = Math.floor(Math.random()*9)+1;
-  currentMathAns = a + b;
-
-  let qText = `${a} + ${b} = ?`;
-  if (currentLang === 'ko-KR') currentMathQuestionText = `${a}와 ${b}를 더하면 얼마인가요?`;
-  else if (currentLang === 'ja-JP') currentMathQuestionText = `${a}足す${b}はいくつですか？`;
-  else if (currentLang === 'es-ES') currentMathQuestionText = `¿Cuánto es ${a} más ${b}?`;
-  else if (currentLang === 'fr-FR') currentMathQuestionText = `Combien font ${a} plus ${b} ?`;
-  else if (currentLang === 'vi-VN') currentMathQuestionText = `${a} cộng ${b} bằng mấy?`;
-  else if (currentLang === 'zh-CN') currentMathQuestionText = `${a} 加 ${b} 等於多少？`;
-  else if (currentLang === 'de-DE') currentMathQuestionText = `Was ist ${a} plus ${b}?`;
-  else currentMathQuestionText = `${a} plus ${b} equals what?`;
-
-  document.getElementById('mathQuestion').textContent = qText;
-  document.getElementById('mathFeedback').textContent = '';
-
-  const opts = new Set([currentMathAns]);
-  while(opts.size < 3) opts.add(Math.floor(Math.random()*18)+1);
-  const shuffled = Array.from(opts).sort(() => Math.random() - 0.5);
-  
-  const box = document.getElementById('mathOptions');
-  box.innerHTML = '';
-  shuffled.forEach(num => {
-    const el = document.createElement('button');
-    el.className = 'kid-btn py-4 rounded-2xl bg-slate-900 border-2 border-sky-500/40 text-2xl font-black text-white hover:bg-sky-600';
-    el.textContent = num;
-    el.onclick = () => {
-      if(num === currentMathAns) {
-        document.getElementById('mathFeedback').textContent = '🎉 Correct!';
-        speakText(currentLang === 'ko-KR' ? '정답입니다!' : currentLang === 'ja-JP' ? '正解です！' : 'Correct! Great job!');
-        setTimeout(newMathQuestion, 3000);
+  const a=Math.floor(Math.random()*9)+1;
+  const b=Math.floor(Math.random()*9)+1;
+  currentMathAns=a+b;
+  document.getElementById('mathQuestion').textContent=`${a} + ${b} = ?`;
+  document.getElementById('mathFeedback').textContent='';
+  const opts=new Set([currentMathAns]);
+  while(opts.size<3) opts.add(Math.floor(Math.random()*18)+1);
+  const shuffled=Array.from(opts).sort(()=>Math.random()-.5);
+  const box=document.getElementById('mathOptions');
+  box.innerHTML='';
+  shuffled.forEach(num=>{
+    const el=document.createElement('button');
+    el.className='kid-btn py-4 rounded-2xl bg-slate-900 border-2 border-sky-500/40 text-2xl font-black text-white hover:bg-sky-600';
+    el.textContent=num;
+    el.onclick=()=>{
+      if(num===currentMathAns) {
+        document.getElementById('mathFeedback').textContent='🎉 Great Job! Correct!';
+        speakText(`Great job! ${a} plus ${b} equals ${currentMathAns}.`);
+        setTimeout(newMathQuestion,3500);
       } else {
-        document.getElementById('mathFeedback').textContent = 'Try again!';
-        speakText(currentLang === 'ko-KR' ? '다시 시도해보세요!' : currentLang === 'ja-JP' ? 'もう一度試してね！' : 'Try again!');
+        document.getElementById('mathFeedback').textContent='Try again! You can do it!';
+        speakText('Not quite. Try again! You can do it!');
       }
     };
     box.appendChild(el);
   });
 }
 
-const kCanvas = document.getElementById('kidCanvas');
-const kCtx = kCanvas.getContext('2d');
-let kDrawing = false, brushColor = '#38bdf8';
+/* ALL 15 ORIGINAL BEDTIME STORIES FULLY PRESERVED */
+const kidStories = [
+  {title:'The Moonbeam’s Goodnight Visit',emoji:'🌙',text:`Once upon a time, in a little village beside a quiet forest, there lived a child named Lily. Every night, Lily looked through her bedroom window at the beautiful moon. One evening, a soft silver moonbeam slipped through her curtains and rested on her pillow. Lily smiled and whispered, “Hello, little moonbeam. Why are you visiting me?” Outside, the trees swayed gently, the flowers closed their petals, and the little birds tucked their heads beneath their wings. Lily imagined the moonbeam visiting every home in the village, reminding everyone that it was time to rest. She hugged her teddy bear, closed her eyes, and whispered, “Goodnight, Moon. Goodnight, stars. Goodnight, everyone.” Beneath the peaceful night sky, Lily drifted into a lovely dream. The moonbeam watched over her until morning. The end.`},
+  {title:'Oliver and the Sleepy Cloud',emoji:'☁️',text:`Oliver loved watching clouds from his garden. One afternoon, he noticed a small fluffy cloud moving very slowly across the sky. “Hello, little cloud! Are you lost?” Oliver called. The cloud floated lower and seemed to smile. It had travelled across mountains, rivers, and green fields. Now it was very tired. Oliver imagined giving the cloud a soft pillow made from the evening breeze. The cloud rested above the garden. As the sun went down, its white edges turned pink and golden. “Thank you for letting me rest,” the cloud seemed to whisper. Soon, the stars appeared, and the sleepy cloud floated gently towards the moon. Oliver waved goodbye, climbed into bed, and dreamed of floating through the sky on a fluffy cloud. Goodnight, little cloud. The end.`},
+  {title:'The Little Rabbit’s Cozy Burrow',emoji:'🐰',text:`Deep inside a peaceful woodland lived a little rabbit named Rosie. Rosie loved hopping through the grass, collecting clover, and playing with her woodland friends. One evening, the sky became dark and the first stars appeared. Rosie knew it was time to go home. She hopped along the soft forest path and reached her cozy burrow beneath an old oak tree. Inside, her mother had prepared a warm bed of soft leaves and fluffy grass. Rosie washed her tiny paws, brushed her ears, and snuggled beneath her favorite blanket. “Did you have a lovely day?” asked Mother Rabbit. “Yes,” Rosie replied. “I played, shared my clover, and made a new friend.” Mother Rabbit kissed her forehead. Rosie closed her eyes and listened to the gentle wind outside. Soon, she was fast asleep, dreaming of another happy day in the woodland. The end.`},
+  {title:'The Star That Forgot to Twinkle',emoji:'⭐',text:`High above the earth lived a little star named Sparkle. Every night, Sparkle twinkled brightly with all the other stars. But one evening, Sparkle felt tired and could not shine as brightly as before. “Oh dear,” Sparkle whispered. “I have forgotten how to twinkle!” The moon smiled kindly. “You do not have to be the brightest star. Just be yourself.” Sparkle looked down at the world. A little child was looking up at the sky, hoping to see a friendly star. Sparkle took a deep breath and gave one tiny twinkle. The child smiled. Sparkle tried again. This time, the little star shone a little brighter. Soon, Sparkle was twinkling happily with the other stars. Sparkle learned that even a small light can make someone smile. The end.`},
+  {title:'Milo’s Goodnight Train',emoji:'🚂',text:`Milo had a little toy train that he loved more than anything. Every evening, before bedtime, he arranged its colorful carriages along the bedroom floor. One night, Milo imagined that the train had become a magical bedtime train. “All aboard!” called the friendly train driver. The train travelled quietly through Dreamland. It passed fields of silver flowers, sleepy villages, and mountains covered in soft moonlight. At each station, the train picked up a friendly animal. First came a sleepy rabbit, then a little bear, and finally a tiny fox. Everyone found a comfortable seat. The train moved slowly beneath a sky full of stars. Soon, Milo’s eyes began to close. He imagined the train taking him to a beautiful land filled with happy dreams. When morning arrived, Milo woke with a smile. The end.`},
+  {title:'The Firefly’s Little Lantern',emoji:'✨',text:`In a quiet garden lived a tiny firefly named Finn. Finn had a little light that glowed at night. One evening, Finn noticed a young caterpillar trying to find its way home beneath the leaves. “Do not worry,” said Finn. “I will help you.” Finn switched on his little lantern and flew slowly along the garden path. The caterpillar followed the gentle light past the flowers, around a small stone, and beneath a large green leaf. At last, they reached the caterpillar’s home. “Thank you for helping me,” said the caterpillar. Finn glowed with happiness. He returned to his favorite flower and looked at the stars. He realized that even a tiny light could help someone find their way. As the garden became quiet, Finn rested on a leaf and let his little lantern glow softly. The end.`},
+  {title:'Nora and the Gentle Sea',emoji:'🌊',text:`Nora lived near a beautiful beach. She loved listening to the waves as they rolled gently onto the sand. One evening, Nora walked along the beach with her grandfather. They watched the sun slowly disappear beyond the sea. “Why do the waves keep coming back?” Nora asked. Grandfather smiled. “The sea has a gentle rhythm, just like breathing. The waves come in, and the waves go out.” Nora listened carefully. Whoosh went the waves. Whoosh went the breeze. A little crab walked sideways across the sand, and a seabird settled quietly on a rock. Nora collected one smooth shell and placed it beside her bed when she returned home. That night, she remembered the peaceful sound of the ocean. She closed her eyes and imagined the waves singing a soft lullaby. The end.`},
+  {title:'The Bear Who Shared the Stars',emoji:'🐻',text:`In a green forest lived a friendly bear named Bruno. Bruno loved looking at the stars every night. One evening, he noticed a little fox sitting alone beneath a tree. “Why are you sad?” Bruno asked. “I have no one to watch the stars with me,” said the fox. Bruno smiled. “You can watch them with me!” They invited a rabbit, a squirrel, and a hedgehog to join them. Soon, all the friends were lying on the soft grass, looking up at the sparkling sky. Bruno pointed to a group of stars and imagined they formed a great shining bear. The fox found a star that looked like a tiny flower. Everyone shared their favorite star stories. When the night grew late, they wished each other sweet dreams and returned home. Bruno was happy because sharing makes beautiful moments even better. The end.`},
+  {title:'The Sleepy Dinosaur',emoji:'🦕',text:`Long ago, in a land of tall trees and gentle rivers, lived a little dinosaur named Dino. Dino loved running through the grass and splashing in the shallow water. But one evening, after a busy day of playing, Dino began to feel very sleepy. He said goodnight to the butterflies, goodnight to the flowers, and goodnight to his dinosaur friends. His mother helped him find a soft place beneath a leafy tree. Dino curled his little tail around himself. “Tell me a bedtime story,” he asked. Mother Dinosaur told him about a beautiful valley where dinosaurs helped one another and played happily together. Dino listened quietly. The stars appeared above the trees, and the gentle breeze rustled the leaves. Before the story ended, Dino’s eyes had closed. He dreamed of a wonderful adventure in the peaceful valley. The end.`},
+  {title:'The Little Boat’s Quiet Journey',emoji:'⛵',text:`On the edge of a peaceful lake floated a little wooden boat named Bluebell. Bluebell loved carrying visitors across the water during the day. One evening, when the lake became quiet, Bluebell began a gentle journey beneath the moon. The water shimmered like silver, and the stars reflected on its surface. A friendly duck swam beside the boat. A fish jumped out of the water and made a tiny splash. Bluebell drifted past the reeds and the sleeping water lilies. There was no hurry. The night was calm and beautiful. At last, Bluebell returned to the little wooden dock. The boat rested quietly beside the shore. The moon watched over the lake while the wind whispered through the trees. Bluebell dreamed of another peaceful journey in the morning. The end.`},
+  {title:'Poppy’s Pillow of Clouds',emoji:'🌤️',text:`Poppy was a little girl who loved looking at the clouds. One afternoon, she saw a cloud shaped like a giant pillow. “I wish I could rest on a pillow as soft as that,” she said. That night, Poppy dreamed that a friendly cloud floated down to her window. “Come along,” said the cloud. “I will show you a peaceful place.” Poppy climbed aboard, and they floated above the sleeping town. They passed quiet houses, moonlit gardens, and forests filled with sleepy animals. At last, they reached a beautiful sky garden where the stars glowed like tiny lamps. Poppy lay down on a soft cloud pillow. The friendly cloud covered her with a blanket made of moonlight. Poppy smiled and closed her eyes. When she woke, the sun was shining through her window. The end.`},
+  {title:'The Kindness Garden',emoji:'🌷',text:`At the end of a little village was a garden that belonged to a kind old gardener. One morning, a young girl named Emma visited the garden. She noticed that some flowers were thirsty and a few plants needed care. “May I help?” Emma asked. The gardener smiled and gave her a small watering can. Emma watered the flowers carefully. She picked up fallen leaves and planted a tiny seed. Every day, Emma returned to help. Soon, the garden became full of beautiful flowers, butterflies, and buzzing bees. Other children noticed the lovely garden and came to help too. The gardener thanked them all. “Kindness is like a seed,” he said. “When we plant it and care for it, wonderful things can grow.” Emma went home feeling happy. She knew small acts of kindness could make the world more beautiful. The end.`},
+  {title:'Sammy Squirrel’s Last Acorn',emoji:'🐿️',text:`Sammy the squirrel loved collecting acorns in the forest. One chilly morning, Sammy found one large, shiny acorn beneath an oak tree. “This will be my special acorn,” he said. As he carried it home, he met a hungry little mouse. “Do you have anything to eat?” asked the mouse. Sammy looked at his special acorn. He had only one, but he decided to share it. “Here, let us enjoy it together,” he said. They sat beneath the oak tree and shared the acorn. The mouse smiled and thanked Sammy. Later, the mouse showed Sammy a hidden place where many acorns had fallen. Sammy laughed with delight. He had shared what he had, and kindness had brought him a new friend. That evening, Sammy curled up in his warm nest and dreamed happily. The end.`},
+  {title:'The Rainbow After the Rain',emoji:'🌈',text:`A little girl named Mia loved sunny days. One afternoon, dark clouds covered the sky, and rain began to fall. Mia looked outside and felt disappointed. “Will the sunshine ever return?” she asked her mother. “Every rainy day has its own beauty,” Mother replied. They listened to the raindrops tapping gently on the roof. After a while, the rain stopped, and the clouds slowly moved away. A beautiful rainbow appeared across the sky. Mia ran to the window and smiled. “Look! So many colors!” Her mother explained that rainbows appear when sunlight shines through tiny drops of water. Mia watched the colorful rainbow until it slowly faded. That evening, she remembered that difficult moments do not last forever, and beautiful things can follow them. The end.`},
+  {title:'Goodnight, Little Woodland',emoji:'🌳',text:`As the sun disappeared behind the hills, the woodland began preparing for sleep. The rabbits returned to their burrows. The birds settled into their nests, and the little hedgehogs curled up beneath the leaves. A young owl named Oliver watched from a branch. “Goodnight, flowers,” he whispered. The flowers gently closed their petals. “Goodnight, river,” he whispered. The river continued flowing softly over the stones. “Goodnight, little foxes,” he whispered. The fox family snuggled together inside their cozy den. One by one, the stars appeared in the sky. Oliver spread his wings and flew quietly above the sleeping trees. The whole woodland was peaceful. The moon shone gently over every home, and the cool night breeze moved through the leaves. Soon, even Oliver found a comfortable branch and closed his eyes. Goodnight, woodland. Sweet dreams to everyone. The end.`}
+];
+
+const storyList=document.getElementById('storyList');
+kidStories.forEach(st=>{
+  const card=document.createElement('div');
+  card.className='bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3';
+  const heading=document.createElement('div');
+  heading.className='flex items-center justify-between gap-2';
+  const title=document.createElement('h3');
+  title.className='text-sm font-black text-white';
+  title.textContent=`${st.emoji} ${st.title}`;
+  const play=document.createElement('button');
+  play.className='kid-btn shrink-0 px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black';
+  play.innerHTML='<i class="fa-solid fa-play mr-1"></i> Read to Me';
+  play.onclick=()=>speakText(`${st.title}. ${st.text}`);
+  heading.append(title,play);
+  const paragraph=document.createElement('p');
+  paragraph.className='text-xs text-gray-300 leading-relaxed';
+  paragraph.textContent=st.text;
+  card.append(heading,paragraph);
+  storyList.appendChild(card);
+});
+
+const kCanvas=document.getElementById('kidCanvas');
+const kCtx=kCanvas.getContext('2d');
+let kDrawing=false,brushColor='#38bdf8';
 function resizeKidCanvas() {
-  const r = kCanvas.getBoundingClientRect();
+  const r=kCanvas.getBoundingClientRect();
   if(r.width>0) {
-    kCanvas.width = r.width; kCanvas.height = r.height;
-    kCtx.strokeStyle = brushColor; kCtx.lineWidth = 6; kCtx.lineCap = 'round';
+    const ratio=window.devicePixelRatio||1;
+    kCanvas.width=Math.round(r.width*ratio);
+    kCanvas.height=Math.round(r.height*ratio);
+    kCtx.setTransform(ratio,0,0,ratio,0,0);
+    kCtx.strokeStyle=brushColor;kCtx.lineWidth=6;kCtx.lineCap='round';kCtx.lineJoin='round';
   }
 }
-function setBrushColor(c) { brushColor = c; kCtx.strokeStyle = c; }
-function clearKidCanvas() { kCtx.clearRect(0, 0, kCanvas.width, kCanvas.height); }
-kCanvas.addEventListener('pointerdown', e => { kDrawing = true; const r = kCanvas.getBoundingClientRect(); kCtx.beginPath(); kCtx.moveTo(e.clientX-r.left, e.clientY-r.top); });
-kCanvas.addEventListener('pointermove', e => { if(!kDrawing) return; const r = kCanvas.getBoundingClientRect(); kCtx.lineTo(e.clientX-r.left, e.clientY-r.top); kCtx.stroke(); });
-['pointerup','pointercancel'].forEach(ev => kCanvas.addEventListener(ev, () => kDrawing = false));
+function setBrushColor(c){brushColor=c;kCtx.strokeStyle=c;}
+function clearKidCanvas(){kCtx.clearRect(0,0,kCanvas.width,kCanvas.height);}
+function getKPos(e){const r=kCanvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+kCanvas.addEventListener('pointerdown',e=>{kDrawing=true;kCanvas.setPointerCapture(e.pointerId);const p=getKPos(e);kCtx.beginPath();kCtx.moveTo(p.x,p.y);});
+kCanvas.addEventListener('pointermove',e=>{if(!kDrawing)return;const p=getKPos(e);kCtx.lineTo(p.x,p.y);kCtx.stroke();});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>kCanvas.addEventListener(ev,()=>kDrawing=false));
+window.addEventListener('resize',()=>{if(!document.getElementById('ksec-draw').classList.contains('hidden'))resizeKidCanvas();});
 
-let gateSum = 33;
+let gateSum=33;
 function openParentalGate() {
-  const x = 15, y = 18; gateSum = x + y;
-  document.getElementById('gateMathPrompt').textContent = `${x} + ${y} = ?`;
+  stopKidAudio();
+  const x=Math.floor(Math.random()*15)+11,y=Math.floor(Math.random()*15)+11;
+  gateSum=x+y;
+  document.getElementById('gateMathPrompt').textContent=`${x} + ${y} = ?`;
+  document.getElementById('gateAnswerInput').value='';
+  document.getElementById('gateLockView').classList.remove('hidden');
+  document.getElementById('gateUnlockedView').classList.add('hidden');
   document.getElementById('parentModal').classList.remove('hidden');
 }
-function closeParentalGate() { document.getElementById('parentModal').classList.add('hidden'); }
-function verifyParentalGate() {
-  if(parseInt(document.getElementById('gateAnswerInput').value, 10) === gateSum) {
+function closeParentalGate(){document.getElementById('parentModal').classList.add('hidden');}
+function verifyParentalGate(){
+  if(parseInt(document.getElementById('gateAnswerInput').value,10)===gateSum){
     document.getElementById('gateLockView').classList.add('hidden');
     document.getElementById('gateUnlockedView').classList.remove('hidden');
-  } else alert('Incorrect answer.');
+  } else alert('Incorrect answer. Adult verification required.');
 }
 
 renderABCs();
-renderStories();
 newMathQuestion();
+checkVoice();
 </script>
 </body>
 </html>
