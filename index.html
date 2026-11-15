@@ -70,7 +70,6 @@
           <i class="fa-solid fa-stop mr-2"></i>Stop Voice
         </button>
       </div>
-      <p class="text-[10px] leading-relaxed text-slate-400">The 15 recorded stories can play from the included audio folder. Other lesson voices may require internet or device speech support. Keep media volume turned up.</p>
     </section>
 
     <div class="grid grid-cols-4 gap-2">
@@ -99,7 +98,7 @@
         <h2 id="mathQuestion" class="text-3xl font-black text-white py-2">2 + 3 = ?</h2>
         <div id="mathOptions" class="grid grid-cols-3 gap-3 pt-2"></div>
         <p id="mathFeedback" class="text-sm font-black text-emerald-400 min-h-6"></p>
-        <button onclick="speakText(document.getElementById('mathQuestion').textContent)" class="kid-btn px-5 py-2 rounded-xl bg-sky-600 text-white text-sm font-bold"><i class="fa-solid fa-volume-high mr-1"></i>Read Question</button>
+        <button onclick="speakText(currentMathPromptText)" class="kid-btn px-5 py-2 rounded-xl bg-sky-600 text-white text-sm font-bold"><i class="fa-solid fa-volume-high mr-1"></i>Read Question</button>
       </div>
     </section>
 
@@ -167,9 +166,8 @@ let speechRunId = 0;
 let audioChunks = [];
 let audioChunkIndex = 0;
 let currentMode = '';
-let currentUtterance = null;
-let currentSpeechText = '';
 let currentLang = 'en-US';
+let currentMathPromptText = '';
 
 function setVoiceStatus(message, type='info') {
   voiceStatus.textContent = message;
@@ -179,6 +177,7 @@ function setVoiceStatus(message, type='info') {
      type === 'playing' ? 'bg-sky-950 text-sky-200' :
      'bg-slate-800 text-amber-200');
 }
+
 function stopKidAudio() {
   speechRunId++;
   if (speechWatchdog) clearTimeout(speechWatchdog);
@@ -188,80 +187,34 @@ function stopKidAudio() {
   audioChunks = [];
   audioChunkIndex = 0;
   currentMode = '';
-  currentUtterance = null;
-  setVoiceStatus('Voice stopped. Tap a lesson or Test Voice to listen again.');
+  setVoiceStatus('Voice stopped.');
 }
-function splitForSpeech(text, maxLength=170) {
-  const words = String(text).trim().split(/\s+/);
-  const chunks = [];
-  let part = '';
-  for (const word of words) {
-    const next = part ? part + ' ' + word : word;
-    if (next.length > maxLength && part) { chunks.push(part); part = word; }
-    else part = next;
-  }
-  if (part) chunks.push(part);
-  return chunks;
-}
+
 function onlineSpeechUrl(text, lang='en-US') {
   const params = new URLSearchParams({ie:'UTF-8', client:'tw-ob', tl: lang, q:text});
   return 'https://translate.google.com/translate_tts?' + params.toString();
 }
+
 function playOnlineChunk(runId) {
   if (runId !== speechRunId) return;
   if (audioChunkIndex >= audioChunks.length) {
     currentMode = '';
-    setVoiceStatus('Narration finished. Tap again to replay.', 'success');
+    setVoiceStatus('Narration finished.', 'success');
     return;
   }
   const chunk = audioChunks[audioChunkIndex];
   voiceAudio.src = onlineSpeechUrl(chunk, currentLang);
   voiceAudio.load();
-  setVoiceStatus('Playing spoken narration…', 'playing');
-  const playPromise = voiceAudio.play();
-  if (playPromise && typeof playPromise.then === 'function') {
-    playPromise.then(() => {
-      if (runId === speechRunId) currentMode = 'audio';
-    }).catch(err => {
-      if (runId !== speechRunId) return;
-      currentMode = '';
-      setVoiceStatus('Audio playback was blocked or the voice service could not be reached.', 'error');
-    });
-  }
+  voiceAudio.play().catch(() => {});
 }
+
 voiceAudio.addEventListener('ended', () => {
-  if (currentMode === 'recorded') {
-    currentMode = '';
-    setVoiceStatus('Story finished. Tap Read to Me to listen again.', 'success');
-    return;
-  }
-  if (currentMode !== 'audio') return;
-  audioChunkIndex++;
-  playOnlineChunk(speechRunId);
-});
-voiceAudio.addEventListener('error', () => {
-  if (currentMode === 'recorded') {
-    const runId = speechRunId;
-    currentMode = '';
-    startOnlineFallback(currentSpeechText, runId);
-    return;
-  }
   if (currentMode === 'audio') {
-    currentMode = '';
-    setVoiceStatus('Online narration could not load.', 'error');
+    audioChunkIndex++;
+    playOnlineChunk(speechRunId);
   }
 });
-function startOnlineFallback(text, runId) {
-  if (runId !== speechRunId) return;
-  if (!navigator.onLine) {
-    setVoiceStatus('No internet connection.', 'error');
-    return;
-  }
-  audioChunks = splitForSpeech(text);
-  audioChunkIndex = 0;
-  currentMode = 'audio';
-  playOnlineChunk(runId);
-}
+
 function speakText(text) {
   const cleanText = String(text || '').trim();
   if (!cleanText) return;
@@ -274,8 +227,7 @@ function speakText(text) {
 
   stopKidAudio();
   const runId = speechRunId;
-  currentSpeechText = cleanText;
-  setVoiceStatus('Preparing voice…', 'playing');
+  setVoiceStatus('Speaking…', 'playing');
 
   if (window.responsiveVoice && typeof responsiveVoice.speak === 'function') {
     let rvVoice = 'UK English Female';
@@ -292,26 +244,20 @@ function speakText(text) {
         rate: 0.88,
         pitch: 1.08,
         volume: 1,
-        onstart: () => {
-          if (runId !== speechRunId) return;
-          currentMode = 'responsive';
-          setVoiceStatus('Speaking…', 'playing');
-        },
-        onend: () => {
-          if (runId !== speechRunId) return;
-          currentMode = '';
-          setVoiceStatus('Narration finished.', 'success');
-        },
-        onerror: () => {
-          if (runId !== speechRunId) return;
-          currentMode = '';
-          startOnlineFallback(cleanText, runId);
-        }
+        onend: () => { if (runId === speechRunId) setVoiceStatus('Finished.', 'success'); },
+        onerror: () => { fallbackGoogleTTS(cleanText, runId); }
       });
       return;
     } catch (e) {}
   }
-  startOnlineFallback(cleanText, runId);
+  fallbackGoogleTTS(cleanText, runId);
+}
+
+function fallbackGoogleTTS(text, runId) {
+  audioChunks = [text];
+  audioChunkIndex = 0;
+  currentMode = 'audio';
+  playOnlineChunk(runId);
 }
 
 function testVoice() {
@@ -326,25 +272,9 @@ function testVoice() {
   };
   speakText(greetings[currentLang] || greetings['en-US']);
 }
-function checkVoice() {
-  setVoiceStatus('Voice system active for ' + currentLang, 'success');
-}
 
-const tabStyles = {
-  abc:'kid-btn bg-pink-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
-  math:'kid-btn bg-sky-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
-  stories:'kid-btn bg-emerald-600 text-white py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg',
-  draw:'kid-btn bg-amber-500 text-slate-950 py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1 shadow-lg'
-};
-const defaultTabColors = {abc:'text-pink-300',math:'text-sky-300',stories:'text-emerald-300',draw:'text-amber-300'};
-function showKidTab(tab) {
-  stopKidAudio();
-  ['abc','math','stories','draw'].forEach(t => {
-    document.getElementById('ksec-'+t).classList.toggle('hidden',t!==tab);
-    document.getElementById('ktab-'+t).className = t===tab ? tabStyles[t] :
-      `kid-btn bg-slate-800 ${defaultTabColors[t]} py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1`;
-  });
-  if (tab==='draw') resizeKidCanvas();
+function checkVoice() {
+  setVoiceStatus('Voice active for ' + currentLang, 'success');
 }
 
 const abcTranslations = {
@@ -442,124 +372,405 @@ function renderABCs() {
   });
 }
 
-function changeAppLanguage(lang) {
-  currentLang = lang;
-  renderABCs();
-  newMathQuestion();
-  setVoiceStatus('Language updated to ' + lang, 'success');
-}
-
-let currentMathAns=5;
+let currentMathAns = 5;
 function newMathQuestion() {
-  const a=Math.floor(Math.random()*9)+1;
-  const b=Math.floor(Math.random()*9)+1;
-  currentMathAns=a+b;
-  document.getElementById('mathQuestion').textContent=`${a} + ${b} = ?`;
-  document.getElementById('mathFeedback').textContent='';
-  const opts=new Set([currentMathAns]);
-  while(opts.size<3) opts.add(Math.floor(Math.random()*18)+1);
-  const shuffled=Array.from(opts).sort(()=>Math.random()-.5);
-  const box=document.getElementById('mathOptions');
-  box.innerHTML='';
-  shuffled.forEach(num=>{
-    const el=document.createElement('button');
-    el.className='kid-btn py-4 rounded-2xl bg-slate-900 border-2 border-sky-500/40 text-2xl font-black text-white hover:bg-sky-600';
-    el.textContent=num;
-    el.onclick=()=>{
-      if(num===currentMathAns) {
-        document.getElementById('mathFeedback').textContent='🎉 Great Job! Correct!';
-        speakText(`Great job! ${a} plus ${b} equals ${currentMathAns}.`);
-        setTimeout(newMathQuestion,3500);
+  const a = Math.floor(Math.random()*9) + 1;
+  const b = Math.floor(Math.random()*9) + 1;
+  currentMathAns = a + b;
+
+  document.getElementById('mathQuestion').textContent = `${a} + ${b} = ?`;
+  document.getElementById('mathFeedback').textContent = '';
+
+  // Fully localized math prompts & feedback
+  if (currentLang === 'vi-VN') {
+    currentMathPromptText = `${a} cộng ${b} bằng mấy?`;
+  } else if (currentLang === 'zh-CN') {
+    currentMathPromptText = `${a} 加 ${b} 等於多少？`;
+  } else if (currentLang === 'ar-SA') {
+    currentMathPromptText = `كم يساوي ${a} زائد ${b}؟`;
+  } else if (currentLang === 'fr-FR') {
+    currentMathPromptText = `Combien font ${a} plus ${b} ?`;
+  } else if (currentLang === 'ko-KR') {
+    currentMathPromptText = `${a} 더하기 ${b}는 얼마인가요?`;
+  } else if (currentLang === 'ja-JP') {
+    currentMathPromptText = `${a} 足す ${b} はいくつ？`;
+  } else {
+    currentMathPromptText = `${a} plus ${b} equals what?`;
+  }
+
+  const opts = new Set([currentMathAns]);
+  while(opts.size < 3) opts.add(Math.floor(Math.random()*18) + 1);
+  const shuffled = Array.from(opts).sort(() => Math.random() - 0.5);
+
+  const box = document.getElementById('mathOptions');
+  box.innerHTML = '';
+  shuffled.forEach(num => {
+    const el = document.createElement('button');
+    el.className = 'kid-btn py-4 rounded-2xl bg-slate-900 border-2 border-sky-500/40 text-2xl font-black text-white hover:bg-sky-600';
+    el.textContent = num;
+    el.onclick = () => {
+      if (num === currentMathAns) {
+        let msg = '🎉 Correct! Great job!';
+        if (currentLang === 'vi-VN') msg = '🎉 Chính xác! Tuyệt vời!';
+        else if (currentLang === 'zh-CN') msg = '🎉 太棒了！回答正確！';
+        else if (currentLang === 'ar-SA') msg = '🎉 صحيح! عمل ممتاز!';
+        else if (currentLang === 'fr-FR') msg = '🎉 Bravo ! C\'est exact !';
+        else if (currentLang === 'ko-KR') msg = '🎉 참 잘했어요! 정답입니다!';
+        else if (currentLang === 'ja-JP') msg = '🎉 すごいね！正解です！';
+
+        document.getElementById('mathFeedback').textContent = msg;
+        speakText(msg);
+        setTimeout(newMathQuestion, 3000);
       } else {
-        document.getElementById('mathFeedback').textContent='Try again! You can do it!';
-        speakText('Not quite. Try again! You can do it!');
+        let err = 'Try again!';
+        if (currentLang === 'vi-VN') err = 'Thử lại nhé!';
+        else if (currentLang === 'zh-CN') err = '再試一次！';
+        else if (currentLang === 'ar-SA') err = 'حاول مرة أخرى!';
+        else if (currentLang === 'fr-FR') err = 'Réessaie !';
+        else if (currentLang === 'ko-KR') err = '다시 시도해보세요!';
+        else if (currentLang === 'ja-JP') err = 'もう一度！';
+
+        document.getElementById('mathFeedback').textContent = err;
+        speakText(err);
       }
     };
     box.appendChild(el);
   });
 }
 
-/* ALL 15 ORIGINAL BEDTIME STORIES FULLY PRESERVED */
+/* ALL 15 ORIGINAL BEDTIME STORIES WITH COMPLETE REGIONAL TRANSLATIONS */
 const kidStories = [
-  {title:'The Moonbeam’s Goodnight Visit',emoji:'🌙',text:`Once upon a time, in a little village beside a quiet forest, there lived a child named Lily. Every night, Lily looked through her bedroom window at the beautiful moon. One evening, a soft silver moonbeam slipped through her curtains and rested on her pillow. Lily smiled and whispered, “Hello, little moonbeam. Why are you visiting me?” Outside, the trees swayed gently, the flowers closed their petals, and the little birds tucked their heads beneath their wings. Lily imagined the moonbeam visiting every home in the village, reminding everyone that it was time to rest. She hugged her teddy bear, closed her eyes, and whispered, “Goodnight, Moon. Goodnight, stars. Goodnight, everyone.” Beneath the peaceful night sky, Lily drifted into a lovely dream. The moonbeam watched over her until morning. The end.`},
-  {title:'Oliver and the Sleepy Cloud',emoji:'☁️',text:`Oliver loved watching clouds from his garden. One afternoon, he noticed a small fluffy cloud moving very slowly across the sky. “Hello, little cloud! Are you lost?” Oliver called. The cloud floated lower and seemed to smile. It had travelled across mountains, rivers, and green fields. Now it was very tired. Oliver imagined giving the cloud a soft pillow made from the evening breeze. The cloud rested above the garden. As the sun went down, its white edges turned pink and golden. “Thank you for letting me rest,” the cloud seemed to whisper. Soon, the stars appeared, and the sleepy cloud floated gently towards the moon. Oliver waved goodbye, climbed into bed, and dreamed of floating through the sky on a fluffy cloud. Goodnight, little cloud. The end.`},
-  {title:'The Little Rabbit’s Cozy Burrow',emoji:'🐰',text:`Deep inside a peaceful woodland lived a little rabbit named Rosie. Rosie loved hopping through the grass, collecting clover, and playing with her woodland friends. One evening, the sky became dark and the first stars appeared. Rosie knew it was time to go home. She hopped along the soft forest path and reached her cozy burrow beneath an old oak tree. Inside, her mother had prepared a warm bed of soft leaves and fluffy grass. Rosie washed her tiny paws, brushed her ears, and snuggled beneath her favorite blanket. “Did you have a lovely day?” asked Mother Rabbit. “Yes,” Rosie replied. “I played, shared my clover, and made a new friend.” Mother Rabbit kissed her forehead. Rosie closed her eyes and listened to the gentle wind outside. Soon, she was fast asleep, dreaming of another happy day in the woodland. The end.`},
-  {title:'The Star That Forgot to Twinkle',emoji:'⭐',text:`High above the earth lived a little star named Sparkle. Every night, Sparkle twinkled brightly with all the other stars. But one evening, Sparkle felt tired and could not shine as brightly as before. “Oh dear,” Sparkle whispered. “I have forgotten how to twinkle!” The moon smiled kindly. “You do not have to be the brightest star. Just be yourself.” Sparkle looked down at the world. A little child was looking up at the sky, hoping to see a friendly star. Sparkle took a deep breath and gave one tiny twinkle. The child smiled. Sparkle tried again. This time, the little star shone a little brighter. Soon, Sparkle was twinkling happily with the other stars. Sparkle learned that even a small light can make someone smile. The end.`},
-  {title:'Milo’s Goodnight Train',emoji:'🚂',text:`Milo had a little toy train that he loved more than anything. Every evening, before bedtime, he arranged its colorful carriages along the bedroom floor. One night, Milo imagined that the train had become a magical bedtime train. “All aboard!” called the friendly train driver. The train travelled quietly through Dreamland. It passed fields of silver flowers, sleepy villages, and mountains covered in soft moonlight. At each station, the train picked up a friendly animal. First came a sleepy rabbit, then a little bear, and finally a tiny fox. Everyone found a comfortable seat. The train moved slowly beneath a sky full of stars. Soon, Milo’s eyes began to close. He imagined the train taking him to a beautiful land filled with happy dreams. When morning arrived, Milo woke with a smile. The end.`},
-  {title:'The Firefly’s Little Lantern',emoji:'✨',text:`In a quiet garden lived a tiny firefly named Finn. Finn had a little light that glowed at night. One evening, Finn noticed a young caterpillar trying to find its way home beneath the leaves. “Do not worry,” said Finn. “I will help you.” Finn switched on his little lantern and flew slowly along the garden path. The caterpillar followed the gentle light past the flowers, around a small stone, and beneath a large green leaf. At last, they reached the caterpillar’s home. “Thank you for helping me,” said the caterpillar. Finn glowed with happiness. He returned to his favorite flower and looked at the stars. He realized that even a tiny light could help someone find their way. As the garden became quiet, Finn rested on a leaf and let his little lantern glow softly. The end.`},
-  {title:'Nora and the Gentle Sea',emoji:'🌊',text:`Nora lived near a beautiful beach. She loved listening to the waves as they rolled gently onto the sand. One evening, Nora walked along the beach with her grandfather. They watched the sun slowly disappear beyond the sea. “Why do the waves keep coming back?” Nora asked. Grandfather smiled. “The sea has a gentle rhythm, just like breathing. The waves come in, and the waves go out.” Nora listened carefully. Whoosh went the waves. Whoosh went the breeze. A little crab walked sideways across the sand, and a seabird settled quietly on a rock. Nora collected one smooth shell and placed it beside her bed when she returned home. That night, she remembered the peaceful sound of the ocean. She closed her eyes and imagined the waves singing a soft lullaby. The end.`},
-  {title:'The Bear Who Shared the Stars',emoji:'🐻',text:`In a green forest lived a friendly bear named Bruno. Bruno loved looking at the stars every night. One evening, he noticed a little fox sitting alone beneath a tree. “Why are you sad?” Bruno asked. “I have no one to watch the stars with me,” said the fox. Bruno smiled. “You can watch them with me!” They invited a rabbit, a squirrel, and a hedgehog to join them. Soon, all the friends were lying on the soft grass, looking up at the sparkling sky. Bruno pointed to a group of stars and imagined they formed a great shining bear. The fox found a star that looked like a tiny flower. Everyone shared their favorite star stories. When the night grew late, they wished each other sweet dreams and returned home. Bruno was happy because sharing makes beautiful moments even better. The end.`},
-  {title:'The Sleepy Dinosaur',emoji:'🦕',text:`Long ago, in a land of tall trees and gentle rivers, lived a little dinosaur named Dino. Dino loved running through the grass and splashing in the shallow water. But one evening, after a busy day of playing, Dino began to feel very sleepy. He said goodnight to the butterflies, goodnight to the flowers, and goodnight to his dinosaur friends. His mother helped him find a soft place beneath a leafy tree. Dino curled his little tail around himself. “Tell me a bedtime story,” he asked. Mother Dinosaur told him about a beautiful valley where dinosaurs helped one another and played happily together. Dino listened quietly. The stars appeared above the trees, and the gentle breeze rustled the leaves. Before the story ended, Dino’s eyes had closed. He dreamed of a wonderful adventure in the peaceful valley. The end.`},
-  {title:'The Little Boat’s Quiet Journey',emoji:'⛵',text:`On the edge of a peaceful lake floated a little wooden boat named Bluebell. Bluebell loved carrying visitors across the water during the day. One evening, when the lake became quiet, Bluebell began a gentle journey beneath the moon. The water shimmered like silver, and the stars reflected on its surface. A friendly duck swam beside the boat. A fish jumped out of the water and made a tiny splash. Bluebell drifted past the reeds and the sleeping water lilies. There was no hurry. The night was calm and beautiful. At last, Bluebell returned to the little wooden dock. The boat rested quietly beside the shore. The moon watched over the lake while the wind whispered through the trees. Bluebell dreamed of another peaceful journey in the morning. The end.`},
-  {title:'Poppy’s Pillow of Clouds',emoji:'🌤️',text:`Poppy was a little girl who loved looking at the clouds. One afternoon, she saw a cloud shaped like a giant pillow. “I wish I could rest on a pillow as soft as that,” she said. That night, Poppy dreamed that a friendly cloud floated down to her window. “Come along,” said the cloud. “I will show you a peaceful place.” Poppy climbed aboard, and they floated above the sleeping town. They passed quiet houses, moonlit gardens, and forests filled with sleepy animals. At last, they reached a beautiful sky garden where the stars glowed like tiny lamps. Poppy lay down on a soft cloud pillow. The friendly cloud covered her with a blanket made of moonlight. Poppy smiled and closed her eyes. When she woke, the sun was shining through her window. The end.`},
-  {title:'The Kindness Garden',emoji:'🌷',text:`At the end of a little village was a garden that belonged to a kind old gardener. One morning, a young girl named Emma visited the garden. She noticed that some flowers were thirsty and a few plants needed care. “May I help?” Emma asked. The gardener smiled and gave her a small watering can. Emma watered the flowers carefully. She picked up fallen leaves and planted a tiny seed. Every day, Emma returned to help. Soon, the garden became full of beautiful flowers, butterflies, and buzzing bees. Other children noticed the lovely garden and came to help too. The gardener thanked them all. “Kindness is like a seed,” he said. “When we plant it and care for it, wonderful things can grow.” Emma went home feeling happy. She knew small acts of kindness could make the world more beautiful. The end.`},
-  {title:'Sammy Squirrel’s Last Acorn',emoji:'🐿️',text:`Sammy the squirrel loved collecting acorns in the forest. One chilly morning, Sammy found one large, shiny acorn beneath an oak tree. “This will be my special acorn,” he said. As he carried it home, he met a hungry little mouse. “Do you have anything to eat?” asked the mouse. Sammy looked at his special acorn. He had only one, but he decided to share it. “Here, let us enjoy it together,” he said. They sat beneath the oak tree and shared the acorn. The mouse smiled and thanked Sammy. Later, the mouse showed Sammy a hidden place where many acorns had fallen. Sammy laughed with delight. He had shared what he had, and kindness had brought him a new friend. That evening, Sammy curled up in his warm nest and dreamed happily. The end.`},
-  {title:'The Rainbow After the Rain',emoji:'🌈',text:`A little girl named Mia loved sunny days. One afternoon, dark clouds covered the sky, and rain began to fall. Mia looked outside and felt disappointed. “Will the sunshine ever return?” she asked her mother. “Every rainy day has its own beauty,” Mother replied. They listened to the raindrops tapping gently on the roof. After a while, the rain stopped, and the clouds slowly moved away. A beautiful rainbow appeared across the sky. Mia ran to the window and smiled. “Look! So many colors!” Her mother explained that rainbows appear when sunlight shines through tiny drops of water. Mia watched the colorful rainbow until it slowly faded. That evening, she remembered that difficult moments do not last forever, and beautiful things can follow them. The end.`},
-  {title:'Goodnight, Little Woodland',emoji:'🌳',text:`As the sun disappeared behind the hills, the woodland began preparing for sleep. The rabbits returned to their burrows. The birds settled into their nests, and the little hedgehogs curled up beneath the leaves. A young owl named Oliver watched from a branch. “Goodnight, flowers,” he whispered. The flowers gently closed their petals. “Goodnight, river,” he whispered. The river continued flowing softly over the stones. “Goodnight, little foxes,” he whispered. The fox family snuggled together inside their cozy den. One by one, the stars appeared in the sky. Oliver spread his wings and flew quietly above the sleeping trees. The whole woodland was peaceful. The moon shone gently over every home, and the cool night breeze moved through the leaves. Soon, even Oliver found a comfortable branch and closed his eyes. Goodnight, woodland. Sweet dreams to everyone. The end.`}
+  {
+    emoji: '🌙',
+    title: {
+      'en-US': 'The Moonbeam’s Goodnight Visit', 'vi-VN': 'Chuyến ghé thăm của ánh trăng', 'zh-CN': '月光晚安訪客',
+      'ar-SA': 'زيارة شعاع القمر الليلية', 'fr-FR': 'La Visite du Rayon de Lune', 'ko-KR': '달빛 요정의 굿나잇 방문', 'ja-JP': '月光の夜の挨拶'
+    },
+    text: {
+      'en-US': 'Once upon a time, in a little village beside a quiet forest, there lived a child named Lily. Every night, Lily looked through her bedroom window at the beautiful moon. One evening, a soft silver moonbeam slipped through her curtains and rested on her pillow. Lily smiled and whispered, “Hello, little moonbeam. Why are you visiting me?” Outside, the trees swayed gently, the flowers closed their petals, and the little birds tucked their heads beneath their wings. Lily imagined the moonbeam visiting every home in the village, reminding everyone that it was time to rest. She hugged her teddy bear, closed her eyes, and whispered, “Goodnight, Moon. Goodnight, stars. Goodnight, everyone.” Beneath the peaceful night sky, Lily drifted into a lovely dream. The moonbeam watched over her until morning. The end.',
+      'vi-VN': 'Ngày xửa ngày xưa, ở một ngôi làng nhỏ bên cạnh khu rừng yên tĩnh, có một đứa trẻ tên là Lily. Mỗi đêm, Lily nhìn qua cửa sổ phòng ngủ ngắm trăng đẹp. Một buổi tối, một tia sáng bạc mềm mại lướt qua rèm cửa và đậu trên gối của cô bé. Lily mỉm cười và thì thầm: “Xin chào ánh trăng nhỏ. Tại sao bạn lại đến thăm tôi?” Bên ngoài, cây cối lay động nhẹ nhàng, hoa cụp cánh lại, và những chú chim nhỏ rúc đầu dưới cánh. Lily tưởng tượng ánh trăng ghé thăm mọi ngôi nhà trong làng, nhắc nhở mọi người đã đến giờ nghỉ ngơi. Cô bé ôm gấu bông, nhắm mắt lại và thì thầm: “Chúc ngủ ngon Trăng. Chúc ngủ ngon các vì sao. Chúc mọi người ngủ ngon.” Dưới bầu trời đêm yên bình, Lily chìm vào giấc mơ tuyệt đẹp. Ánh trăng canh chừng cô bé cho đến sáng. Hết.',
+      'zh-CN': '從前，在一個安靜的森林村莊裡，住著一個叫莉莉的孩子。每天晚上，莉莉透過臥室窗戶看著美麗的月亮。一天晚上，一道柔和的銀色月光穿過窗簾，落在她的枕頭上。莉莉微笑著低聲說：「你好，小月光。你為什麼來看我？」外面，樹木輕輕搖曳，花朵合攏花瓣，小鳥把頭藏在翅膀底下。莉莉想像著月光訪問村裡的每一個家庭，提醒大家該休息了。她抱緊泰迪熊，閉上眼睛，輕聲說：「晚安，月亮。晚安，星星。大家晚安。」在寧靜的夜空下，莉莉進入了甜美的夢鄉。月光一直守護著她直到天亮。故事結束。',
+      'ar-SA': 'كان يا ما كان، في قرية صغيرة بجوار غابة هادئة، عاش طفل اسمه ليلي. كل ليلة، كانت ليلي تنظر من نافذة غرفتها إلى القمر الجميل. ذات أمسية، تسلل شعاع قمر فضي ناعم عبر ستائرها واستقر على وسادتها. ابتسمت ليلي وهمست: "أيها الشعاع الصغير، لماذا تزورني؟" في الخارج، كانت الأشجار تتأرجح بلطف، وأغلقت الزهور بتلاتها، وخبأت الطيور الصغيرة رؤوسها تحت أجنحتها. تخيلت ليلي أن شعاع القمر يزور كل منزل في القرية لتذكير الجميع بأن الوقت قد حان للراحة. عانقت دميتها الدب، وأغلقَت عينيها، وهمست: "تصبح على خير أيها القمر. تصبحون على خير ايتها النجوم." تحت ليل هادئ، غفت ليلي في حلم جميل. ظل شعاع القمر يراقبها حتى الصباح. النهاية.',
+      'fr-FR': 'Il était une fois, dans un petit village près d\'une forêt calme, un enfant nommé Lily. Chaque nuit, Lily regardait la belle lune par sa fenêtre. Un soir, un doux rayon de lune argenté glissa à travers ses rideaux et se posa sur son oreiller. Lily sourit et murmura : « Bonjour, petit rayon de lune. Pourquoi me rends-tu visite ? » Dehors, les arbres se balançaient doucement, les fleurs fermaient leurs pétales et les petits oiseaux rentraient leur tête sous leurs ailes. Lily imaginait le rayon de lune visitant chaque foyer du village pour rappeler à tous qu\'il était temps de se reposer. Elle câlina son ours en peluche, ferma les yeux et murmura : « Bonne nuit, Lune. Bonne nuit, étoiles. Bonne nuit à tous. » Sous le ciel nocturne paisible, Lily s\'endormit dans un beau rêve. Le rayon de lune veilla sur elle jusqu\'au matin. Fin.',
+      'ko-KR': '옛날 어느 조용한 숲속 마을에 릴리라는 아이가 살았어요. 밤마다 릴리는 창문 너머 예쁜 달을 바라보았지요. 어느 날 저녁, 부드러운 은빛 달빛이 커튼을 스며들어 베개 위에 내려앉았어요. 릴리는 미소 지으며 속삭였어요. "안녕, 달빛 요정아. 왜 나를 찾아왔니?" 밖에서는 나무들이 살랑이고 꽃들은 꽃잎을 접었으며 새들은 날개 밑에 머리를 파묻었어요. 릴리는 달빛이 마을의 모든 집을 방문해 모두에게 쉴 시간이라고 속삭여주는 상상을 했어요. 곰인형을 꼭 안고 눈을 감은 뒤 속삭였어요. "달님 안녕. 별님 안녕. 모두모두 잘 자요." 평화로운 밤하늘 아래, 릴리는 예쁜 꿈나라로 빠져들었어요. 달빛은 아침이 될 때까지 릴리를 지켜주었답니다. 끝.',
+      'ja-JP': 'むかしむかし、静かな森のそばの小さな村に、リリーという子どもが住んでいました。毎晩、リリーは自分の部屋の窓から美しい月を見上げていました。ある日の夕方、やさしい銀色の月光がカーテンのすき間から差し込み、枕の上に止まりました。リリーは微笑んでささやきました。「こんにちは、お月さまの光。どうして私に会いに来たの？」外では、木々が優しく揺れ、花びらが閉じ、小鳥たちが羽の中に頭をうずめていました。リリーは、月光が村のどのお家も訪れて、みんなに休む時間だよと教えて回っているのだと想像しました。テディベアを抱きしめ、目を閉じてささやきました。「おやすみなさい、お月さま。おやすみなさい、お星さま。みんな、おやすみ。」静かな夜空の下、リリーはステキな夢の世界へ眠りにつきました。月光は朝まで彼女を見守っていました。おしまい。'
+    }
+  },
+  {
+    emoji: '☁️',
+    title: {
+      'en-US': 'Oliver and the Sleepy Cloud', 'vi-VN': 'Oliver và đám mây buồn ngủ', 'zh-CN': '奧利弗與睏睏的雲',
+      'ar-SA': 'أوليفر والغيوم النعسانة', 'fr-FR': 'Oliver et le Nuage Endormi', 'ko-KR': '올리버와 졸린 구름', 'ja-JP': 'オリバーと眠たげな雲'
+    },
+    text: {
+      'en-US': 'Oliver loved watching clouds from his garden. One afternoon, he noticed a small fluffy cloud moving very slowly across the sky. “Hello, little cloud! Are you lost?” Oliver called. The cloud floated lower and seemed to smile. It had travelled across mountains, rivers, and green fields. Now it was very tired. Oliver imagined giving the cloud a soft pillow made from the evening breeze. The cloud rested above the garden. As the sun went down, its white edges turned pink and golden. “Thank you for letting me rest,” the cloud seemed to whisper. Soon, the stars appeared, and the sleepy cloud floated gently towards the moon. Oliver waved goodbye, climbed into bed, and dreamed of floating through the sky on a fluffy cloud. Goodnight, little cloud. The end.',
+      'vi-VN': 'Oliver rất thích ngắm những đám mây từ khu vườn của mình. Một buổi chiều, cậu nhận thấy một đám mây bông nhỏ đang di chuyển rất chậm trên bầu trời. Oliver gọi lớn: “Xin chào đám mây nhỏ! Bạn có bị lạc không?” Đám mây trôi thấp hơn và có vẻ như đang mملm cười. Nó đã bay qua những ngọn núi, dòng sông và cánh đồng xanh. Bây giờ nó rất mệt. Oliver tưởng tượng việc tặng cho đám mây một chiếc gối mềm làm bằng gió chiều. Đám mây nghỉ ngơi phía trên khu vườn. Khi mặt trời lặn, các viền trắng của nó chuyển sang màu hồng và vàng. Đám mây dường như thì thầm: “Cảm ơn bạn đã cho tôi nghỉ ngơi.” Chẳng mấy chốc, các vì sao xuất hiện, và đám mây buồn ngủ trôi nhẹ nhàng về phía mặt trăng. Oliver vẫy tay tạm biệt, leo lên giường và mơ thấy mình đang bay lượn trên bầu trời trên một đám mây bông xốp. Chúc ngủ ngon, đám mây nhỏ. Hết.',
+      'zh-CN': '奧利弗喜歡在花園裡看雲。一天下午，他注意到一朵毛茸茸的小雲在天空中緩緩移動。「嗨，小雲！你迷路了嗎？」奧利弗喊道。雲飄得更低了，似乎在微笑。它越過了高山、河流和綠野，現在它累極了。奧利弗想像著用晚風給雲做了一個柔軟的枕頭。雲在花園上方休息。夕陽西下時，它白色的邊緣變成了粉紅色和金色。「謝謝你讓我休息，」雲似乎在低語。不久，星星出現了，睏睏的雲輕輕地向月亮飄去。奧利弗揮手告別，爬上床，夢見自己在一朵蓬鬆的雲上飛過天空。晚安，小雲。故事結束。',
+      'ar-SA': 'احب أوليفر مراقبة السحب من حديقته. ذات بعد ظهر، لاحظ سحابة صغيرة وفضفاضة تتحرك ببطء شديد عبر السماء. نادى أوليفر: "مرحباً ايتها السحابة الصغيرة! هل ضللت الطريق؟" طفت السحابة للأخفض وبدت وكأنها تبتسم. لقد سافرت عبر الجبال والأنهار والخصب. الآن أصبحت متعبة جداً. تخيل أوليفر أنه يمنح السحابة وسادة ناعمة من نسيم المساء. استراحت السحابة فوق الحديقة. عندما غربت الشمس، تحولت حوافها البيضاء إلى اللون الوردي والذهبي. همست السحابة: "شكراً لك على إتاحة الفرصة لي للراحة." سرعان ما ظهرت النجوم، وطفَت السحابة الناعمة برفق نحو القمر. لوح أوليفر مودعاً، وصعد إلى السرير، وحلم بأنه يطفو في السماء على سحابة رقيقة. تصبحي على خير ايتها السحابة الصغيرة. النهاية.',
+      'fr-FR': 'Oliver adorait regarder les nuages depuis son jardin. Un après-midi, il remarqua un petit nuage duveteux qui se déplaçait très lentement dans le ciel. « Bonjour, petit nuage ! Es-tu perdu ? » appela Oliver. Le nuage flotta plus bas et sembla sourire. Il avait voyagé à travers les montagnes, les rivières et les champs verts. Maintenant, il était très fatigué. Oliver imagina donner au nuage un oreiller moelleux fait de la brise du soir. Le nuage se reposa au-dessus du jardin. Le soleil se couchant, ses bords blancs devinrent roses et dorés. « Merci de m\'avoir laissé me reposer », sembla murmurer le nuage. Bientôt, les étoiles apparurent et le nuage endormi flotta doucement vers la lune. Oliver fit au revoir de la main, monta dans son lit et rêva de flotter dans le ciel sur un nuage duveteux. Bonne nuit, petit nuage. Fin.',
+      'ko-KR': '올리버는 정원에서 구름을 바라보는 것을 정말 좋아했어요. 어느 날 오후, 하늘을 아주 천천히 흘러가는 몽싯몽싯한 작은 구름을 발견했지요. "안녕, 작은 구름아! 길을 잃었니?" 올리버가 소리쳤어요. 구름은 더 낮게 떠오르며 미소 짓는 것 같았어요. 산과 강, 초원을 건너온 구름은 아주 많이 지쳐 있었어요. 올리버는 저녁 바람으로 만든 부드러운 베개를 구름에게 선물하는 상상을 했어요. 구름은 정원 위에서 편히 쉬었어요. 해가 지면서 구름의 하얀 가장자리가 분홍빛과 황금빛으로 물들었어요. "쉬게 해 줘서 고마워," 구름이 속삭이는 것 같았어요. 잠시 후 별들이 반짝이고, 졸린 구름은 달님을 향해 부드럽게 흘러갔어요. 올리버는 손을 흔들어 작별 인사를 하고 침대에 올라가 폭신한 구름을 타고 하늘을 나는 꿈을 꾸었어요. 안녕, 작은 구름아. 끝.',
+      'ja-JP': 'オリバーは庭から空の雲を眺めるのが大好きでした。ある日の午後、フワフワとした小さな雲が空をゆっくりと流れているのに気づきました。「おーい、小さな雲さん！道に迷ったの？」オリバーが声をかけました。雲はふわりと低く下りてきて、にっこり微笑んだようです。山や川、緑の原っぱをずっと旅してきたので、とても疲れていたのです。オリバーは、夕方の風でできた柔らかい枕を雲にプレゼントしてあげたいと思いました。雲は庭の上で休みました。日が沈むにつれて、雲の白い端っこがピンク色や金色に染まりました。「休ませてくれてありがとう」と、雲がささやいた気がしました。やがて星が現れ、眠そうな雲はお月さまの方へ優しく漂っていきました。オリバーはバイバイと手を振ってベッドに入り、フワフワの雲に乗って空を飛ぶ夢を見ました。おやすみ、小さな雲さん。おしまい。'
+    }
+  },
+  {
+    emoji: '🐰',
+    title: {
+      'en-US': 'The Little Rabbit’s Cozy Burrow', 'vi-VN': 'Hang ấm áp của thỏ con', 'zh-CN': '小兔子舒適的洞穴',
+      'ar-SA': 'جحر الأرنب الصغير الدافئ', 'fr-FR': 'Le Terrier Confortable du Petit Lapin', 'ko-KR': '아기 토끼의 아늑한 굴', 'ja-JP': 'ウサギさんの居心地の良い巣穴'
+    },
+    text: {
+      'en-US': 'Deep inside a peaceful woodland lived a little rabbit named Rosie. Rosie loved hopping through the grass, collecting clover, and playing with her woodland friends. One evening, the sky became dark and the first stars appeared. Rosie knew it was time to go home. She hopped along the soft forest path and reached her cozy burrow beneath an old oak tree. Inside, her mother had prepared a warm bed of soft leaves and fluffy grass. Rosie washed her tiny paws, brushed her ears, and snuggled beneath her favorite blanket. “Did you have a lovely day?” asked Mother Rabbit. “Yes,” Rosie replied. “I played, shared my clover, and made a new friend.” Mother Rabbit kissed her forehead. Rosie closed her eyes and listened to the gentle wind outside. Soon, she was fast asleep, dreaming of another happy day in the woodland. The end.',
+      'vi-VN': 'Sâu trong khu rừng yên bình có một chú thỏ nhỏ tên là Rosie. Rosie thích nhảy nhót qua thảm cỏ, hái cỏ ba lá và chơi đùa với những người bạn trong rừng. Một buổi tối, bầu trời tối dần và những ngôi sao đầu tiên xuất hiện. Rosie biết đã đến lúc phải về nhà. Con bé nhảy nhót dọc theo con đường mòn mềm mại trong rừng và về đến cái hang ấm cúng bên dưới gốc cây sồi già. Bên trong, mẹ chú đã chuẩn bị một chiếc giường ấm áp bằng những chiếc lá mềm và cỏ bông xốp. Rosie rửa đôi bàn chân nhỏ bé, chải tai và rúc mình dưới chiếc chăn yêu thích. “Con đã có một ngày tuyệt vời chứ?” Mẹ Thỏ hỏi. “Vâng ạ,” Rosie trả lời. “Con đã chơi đùa, chia sẻ cỏ ba lá và kết bạn mới.” Mẹ Thỏ hôn lên trán con. Rosie nhắm mắt lại và lắng nghe cơn gió nhẹ bên ngoài. Chẳng mấy chốc, chú đã ngủ say, mơ về một ngày vui vẻ khác trong rừng. Hết.',
+      'zh-CN': '在寧靜的森林深處，住著一隻叫羅西的小兔子。羅西喜歡在草地上蹦蹦跳跳，收集三葉草，和森林裡的朋友們玩耍。一天晚上，天空變黑了，第一顆星星出現了。羅西知道是時候回家了。她順著柔軟的林間小路蹦跳著，回到了老橡樹下舒適的洞穴。裡面，媽媽已經用柔軟的樹葉和蓬鬆的草鋪好了溫暖的床。羅西洗了洗小爪子，梳理了耳朵，縮在她最喜歡的毯子底下。「今天過得開心嗎？」兔媽媽問。「開心啊，」羅西回答說，「我玩了遊戲，分享了三葉草，還交到了新朋友。」兔媽媽親吻了她的額頭。羅西閉上眼睛，聽著外面輕柔的風聲。很快，她就沉沉地睡著了，夢見森林裡另一個快樂的日子。故事結束。',
+      'ar-SA': 'في عمق غابة هادئة، عاش أرنب صغير اسمه روزي. أحبت روزي القفز عبر العشب، وجمع البرسيم، واللعب مع أصدقائها في الغابة. ذات أمسية، أصبحت السماء مظلمة وظهرت النجوم الأولى. عرفت روزي أن الوقت قد حان للعودة إلى المنزل. قفزت على طول مسار الغابة الناعم ووصلت إلى جحرها الدافئ تحت شجرة بلوط قديمة. في الداخل، أعدت والدتها سريداً دافئاً من الأوراق الناعمة والعشب الرقيق. غسلت روزي كفيها الصغيرتين، ومشطت أذنيها، وتورطت تحت بطانيتها المفضلة. سألت الأم الأرنب: "هل قضيتِ يوماً رائعاً؟" أجابت روزي: "نعم، لقد لعبت، وشاركت البرسيم، وكونت صديقاً جديداً." قبلت الأم جبهتها. أغلقَت روزي عينيها واستمعت إلى الرياح اللطيفة في الخارج. سرعان ما غرقت في نوم عميق، حالمة بيوم سعيد آخر في الغابة. النهاية.',
+      'fr-FR': 'Au fond d\'une forêt paisible vivait un petit lapin nommé Rosie. Rosie adorait sauter dans l\'herbe, ramasser du trèfle et jouer avec ses amis de la forêt. Un soir, le ciel devint sombre et les premières étoiles apparurent. Rosie sut qu\'il était temps de rentrez chez elle. Elle sauta le long du sentier forestier doux et atteignit son terrier confortable sous un vieux chêne. À l\'intérieur, sa mère avait préparé un lit chaud de feuilles douces et d\'herbe duveteuse. Rosie lava ses petites pattes, brossa ses oreilles et se blottit sous sa couverture préférée. « As-tu passé une belle journée ? » demanda Maman Lapin. « Oui », répondit Rosie. « J\'ai joué, partagé mon trèfle et fait un nouveau copain. » Maman Lapin embrassa son front. Rosie ferma les yeux et écouta le vent doux dehors. Bientôt, elle s\'endormit profondément, rêvant d\'un autre jour heureux dans la forêt. Fin.',
+      'ko-KR': '평화로운 숲 깊은 곳에 로지라는 아기 토끼가 살았어요. 로지는 풀밭을 뛰어다니며 클로버를 모으고 숲 친구들과 노는 것을 정말 좋아했지요. 어느 날 저녁, 하늘이 어두워지고 첫 별이 반짝였어요. 로지는 집에 갈 시간이라는 것을 알았어요. 부드러운 숲길을 따라 깡충깡충 뛰어 늙은 참나무 아래 아기자기한 굴에 도착했답니다. 안에서는 엄마가 부드러운 나뭇잎과 폭신한 풀로 따뜻한 잠자리를 준비해 두셨어요. 로지는 작은 발을 씻고 귀를 빗질한 뒤, 가장 좋아하는 담요 밑으로 쏙 들어갔어요. "오늘 하루 즐거웠니?" 엄마 토끼가 물었어요. "네! 놀기도 하고 클로버도 나누어 먹고 새 친구도 사귀었어요." 엄마 토끼가 로지의 이마에 뽀뽀해 주었어요. 로지는 눈을 감고 바깥의 부드러운 바람 소리를 들었어요. 잠시 후, 숲속에서의 또 다른 행복한 하루를 꿈꾸며 깊은 잠에 빠져들었답니다. 끝.',
+      'ja-JP': '平和な森の奥深くに、ロージーという小さなウサギが住んでいました。ロージーは草むらをピョンピョン跳ねて、クローバーを集めたり、森の友達と遊んだりするのが大好きでした。ある日の夕方、空が暗くなって最初の星が顔を出しました。ロージーはお家へ帰る時間だと気づきました。柔らかい森の小道を跳ねていき、古いオークの木の下にある居心地の良い巣穴に到着しました。中ではお母さんが、柔らかい落ち葉とフカフカの草で温かいベッドを用意してくれていました。ロージーはおててを洗い、お耳を整えて、お気に入りの毛布に潜り込みました。「ステキな一日だった？」お母さんウサギが尋ねました。「うん！」ロージーは答えました。「遊んで、クローバーを分けて、新しいお友達ができたの。」お母さんは彼女の額にキスをしました。ロージーは目を閉じ、外の優しい風の音を聞きました。すぐにぐっすり眠り込み、森でのまた楽しい一日の夢を見ました。おしまい。'
+    }
+  },
+  {
+    emoji: '⭐',
+    title: {
+      'en-US': 'The Star That Forgot to Twinkle', 'vi-VN': 'Ngôi sao quên cách lấp lánh', 'zh-CN': '忘記閃爍的小星星',
+      'ar-SA': 'النجمة التي نسيت أن تتألق', 'fr-FR': 'L\'Étoile qui a Oublié de Scintiller', 'ko-KR': '반짝이는 법을 잊은 별', 'ja-JP': 'またたくのを忘れた星'
+    },
+    text: {
+      'en-US': 'High above the earth lived a little star named Sparkle. Every night, Sparkle twinkled brightly with all the other stars. But one evening, Sparkle felt tired and could not shine as brightly as before. “Oh dear,” Sparkle whispered. “I have forgotten how to twinkle!” The moon smiled kindly. “You do not have to be the brightest star. Just be yourself.” Sparkle looked down at the world. A little child was looking up at the sky, hoping to see a friendly star. Sparkle took a deep breath and gave one tiny twinkle. The child smiled. Sparkle tried again. This time, the little star shone a little brighter. Soon, Sparkle was twinkling happily with the other stars. Sparkle learned that even a small light can make someone smile. The end.',
+      'vi-VN': 'Tít trên cao trái đất có một ngôi sao nhỏ tên là Sparkle. Mỗi đêm, Sparkle đều lấp lánh rực rỡ cùng tất cả các ngôi sao khác. Nhưng có một buổi tối, Sparkle cảm thấy mệt mỏi và không thể tỏa sáng rực rỡ như trước. “Ôi trời,” Sparkle thì thầm. “Mình quên cách lấp lánh rồi!” Mặt trăng mỉm cười hiền từ. “Bạn không cần phải là ngôi sao sáng nhất. Hãy là chính mình thôi.” Sparkle nhìn xuống thế giới. Một em bé đang nhìn lên bầu trời, hy vọng nhìn thấy một ngôi sao thân thiện. Sparkle hít một hơi thật sâu và nhấp nháy một cái thật nhẹ. Đứa trẻ mỉm cười. Sparkle thử lại. Lần này, ngôi sao nhỏ tỏa sáng hơn một chút. Chẳng mấy chốc, Sparkle lại lấp lánh hạnh phúc cùng các ngôi sao khác. Sparkle học được rằng ngay cả một ánh sáng nhỏ cũng có thể làm ai đó mỉm cười. Hết.',
+      'zh-CN': '在地球高空住著一顆叫閃閃的小星星。每天晚上，閃閃都和其他星星一起閃閃發光。但有一天晚上，閃閃覺得很累，光芒不如以前那麼亮了。「天哪，」閃閃低聲說，「我忘記怎麼閃爍了！」月亮慈祥地笑了笑。「你不需要成為最亮的星星，做你自己就好。」閃閃向下看著世界。一個小孩正仰望天空，希望能看到一顆友善的星星。閃閃深吸了一口氣，輕輕地閃爍了一下。那孩子笑了。閃閃又試了一次。這一次，小星光亮了一些。不久，閃閃和其它星星一起快樂地閃爍著。閃閃明白了，即使是一道微弱的光也能讓某人微笑。故事結束。',
+      'ar-SA': 'عالية فوق الأرض عاشت نجمة صغيرة اسمها سباركل. كل ليلة، كانت سباركل تتلألأ ببريق مع جميع النجوم الأخرى. ولكن ذات أمسية، شعرت سباركل بالتعب ولم تستطيع التألق بالسطوع كما كانت من قبل. همست سباركل: "يا الهي، لقد نسيت كيف أتألق!" ابتسم القمر بلطف. "لا يجب أن تكوني النجمة الأكثر لمعاناً. كوني نفسك فقط." نظرت سباركل إلى الأسفل نحو العالم. كان طفل صغير ينظر إلى السماء، أملاً في رؤية نجمة ودودة. أخذت سباركل نفساً عميقاً وأعطت وميضاً صغيراً واحداً. ابتسم الطفل. حاولت سباركل مرة أخرى. هذه المرة، أشرقت النجمة الصغيرة بشكل أكثر إشراقاً. سرعان ما كانت سباركل تتلألأ بسعادة مع النجوم الأخرى. تعلمت سباركل أن حتى الضوء الصغير يمكن أن يجعل شخصاً ما يبتسم. النهاية.',
+      'fr-FR': 'Bien au-dessus de la terre vivait une petite étoile nommée Sparkle. Chaque nuit, Sparkle scintillait brillamment avec toutes les autres étoiles. Mais un soir, Sparkle se sentit fatiguée et ne put briller aussi fort qu\'avant. « Oh mon dieu », murmura Sparkle. « J\'ai oublié comment scintiller ! » La lune sourit gentiment. « Tu n\'es pas obligée d\'être l\'étoile la plus brillante. Sois simplement toi-même. » Sparkle regarda le monde en bas. Un petit enfant levait les yeux vers le ciel, espérant voir une étoile amicale. Sparkle prit une profonde inspiration et fit un tout petit scintillement. L\'enfant sourit. Sparkle réessaya. Cette fois, la petite étoile brilla un peu plus fort. Bientôt, Sparkle scintillait joyeusement avec les autres étoiles. Sparkle apprit que même une petite lumière peut faire sourire quelqu\'un. Fin.',
+      'ko-KR': '지구 높은 하늘 위에는 스파클이라는 작은 별이 살았어요. 매일 밤 스파클은 다른 별들과 함께 환하게 반짝였지요. 하지만 어느 날 저녁, 스파클은 몸이 지쳐 예전만큼 밝게 빛날 수가 없었어요. "아이구," 스파클이 속삭였어요. "반짝이는 법을 잊어버렸나 봐!" 달님이 다정하게 미소 지었어요. "가장 밝은 별이 될 필요는 없단다. 그냥 너 자신이면 돼." 스파클은 아래쪽 세상을 내려다보았어요. 한 아이가 다정한 별을 찾고 싶어 하늘을 올려다보고 있었지요. 스파클은 숨을 깊게 들이쉬고 아주 작은 빛으로 반짝였어요. 아이가 미소를 지었지요. 스파클은 다시 한번 힘을 내보았어요. 이번에는 조금 더 밝게 빛났답니다. 잠시 후, 스파클은 다른 별들과 함께 행복하게 반짝였어요. 아주 작은 불빛이라도 누군가를 미소 짓게 만들 수 있다는 것을 깨달았답니다. 끝.',
+      'ja-JP': '地球の高い空の上に、スパークルという小さな星が住んでいました。毎晩、スパークルは他の星たちと一緒にピカピカと輝いていました。しかしある夜、スパークルは疲れを感じて、前ほど明るく光ることができなくなりました。「どうしよう」とスパークルはささやきました。「またたき方を忘れちゃった！」お月さまが優しく微笑みました。「一番明るい星にならなくたっていいんだよ。ただの君でいればいいのさ。」スパークルは下の世界を見下ろしました。一人の子供が空を見上げて、お友達の星を探していました。スパークルは深呼吸をして、ほんの小さな光できらりとまたたきました。子供はニコッと笑いました。スパークルはもう一度やってみました。今度は、小さな星が少しだけ明るく輝きました。すぐに、スパークルは他の星たちと一緒に嬉しそうにまたたき始めました。小さな光でも、誰かを笑顔にすることができるんだと、スパークルは学びました。おしまい。'
+    }
+  },
+  {
+    emoji: '🚂',
+    title: {
+      'en-US': 'Milo’s Goodnight Train', 'vi-VN': 'Chuyến tàu chúc ngủ ngon của Milo', 'zh-CN': '米洛的晚安火車',
+      'ar-SA': 'قطار ميلو لليل السعيد', 'fr-FR': 'Le Train du Bonsoir de Milo', 'ko-KR': '마일로의 굿나잇 기차', 'ja-JP': 'マイロのグッドナイト列車'
+    },
+    text: {
+      'en-US': 'Milo had a little toy train that he loved more than anything. Every evening, before bedtime, he arranged its colorful carriages along the bedroom floor. One night, Milo imagined that the train had become a magical bedtime train. “All aboard!” called the friendly train driver. The train travelled quietly through Dreamland. It passed fields of silver flowers, sleepy villages, and mountains covered in soft moonlight. At each station, the train picked up a friendly animal. First came a sleepy rabbit, then a little bear, and finally a tiny fox. Everyone found a comfortable seat. The train moved slowly beneath a sky full of stars. Soon, Milo’s eyes began to close. He imagined the train taking him to a beautiful land filled with happy dreams. When morning arrived, Milo woke with a smile. The end.',
+      'vi-VN': 'Milo có một đoàn tàu đồ chơi nhỏ mà cậu yêu thích hơn bất cứ thứ gì. Mỗi buổi tối, trước giờ đi ngủ, cậu xếp các toa tàu đầy màu sắc dọc theo sàn phòng ngủ. Một đêm nọ, Milo tưởng tượng đoàn tàu đã trở thành một chuyến tàu đi ngủ kỳ diệu. “Tất cả lên tàu nào!” người lái tàu thân thiện gọi. Đoàn tàu di chuyển lặng lẽ qua Xứ sở Giấc mơ. Nó đi qua những cánh đồng hoa bạc, những ngôi làng buồn ngủ và những ngọn núi phủ ánh trăng mềm mại. Tại mỗi ga, đoàn tàu đón một con vật thân thiện. Đầu tiên là một chú thỏ buồn ngủ, tiếp theo là một chú gấu nhỏ, và cuối cùng là một chú cáo nhỏ. Mọi người đều tìm được chỗ ngồi thoải mái. Đoàn tàu di chuyển chậm rãi dưới bầu trời đầy sao. Chẳng mấy chốc, đôi mắt của Milo bắt đầu khép lại. Cậu tưởng tượng đoàn tàu đang đưa mình đến một vùng đất xinh đẹp tràn ngập những giấc mơ hạnh phúc. Khi buổi sáng đến, Milo thức dậy với nụ cười trên môi. Hết.',
+      'zh-CN': '米洛有一列他最心愛的小玩具火車。每天晚上睡覺前，他把五顏六色的車廂排在臥室的地板上。有一天晚上，米洛想像火車變成了一列神奇的睡前火車。「請上車！」友善的火車司機喊道。火車安靜地穿過夢幻島。它經過銀色花海、睏倦的村莊和被柔和月光覆蓋的山脈。在每個車站，火車都會接上一隻友善的動物。首先是一隻睏倦的兔子，接著是一隻小熊，最後是一隻小狐狸。每個人都找到了舒適的座位。火車在繁星點點的天空下緩緩行進。很快，米洛的眼睛開始閉上了。他想像火車帶他去一個充滿幸福夢想的美麗國度。清晨來臨，米洛帶著微笑醒來。故事結束。',
+      'ar-SA': 'كان لدى ميلو قطار لعبة صغير كان يحبه أكثر من أي شيء آخر. كل مساء، قبل وقت النوم، كان يرتب عرباته الملونة على أرضية غرفة النوم. ذات ليلة، تخيل ميلو أن القطار أصبح قطار نوم سحرياً. نادى سائق القطار الودود: "الكل على متن القطار!" سافر القطار بهدوء عبر أرض الأحلام. مر بحقول الزهور الفضية، والقرى الناعمة، والجبال المغطاة بضوء القمر الناعم. في كل محطة، كان القطار يلتقط حيواناً وديئاً. جاء أولاً أرنب نعسان، ثم دب صغير، وأخيراً ثعلب صغير. وجد الجميع مقعداً مريحاً. تحرك القطار ببطء تحت سماء مليئة بالنجوم. سرعان ما بدأت عينا ميلو تغلقان. تخيل القطار يأخذه إلى أرض جميلة مليئة بالأحلام السعيدة. عندما حل الصباح، استيقظ ميلو مع ابتسامة. النهاية.',
+      'fr-FR': 'Milo avait un petit train jouet qu\'il aimait plus que tout. Chaque soir, avant d\'aller se coucher, il disposait ses wagons colorés sur le sol de la chambre. Une nuit, Milo imagina que le train était devenu un train magique du coucher. « Tout le monde à bord ! » cria le sympathique conducteur. Le train voyagea tranquillement à travers le Pays des Rêves. Il passa devant des champs de fleurs argentées, des villages endormis et des montagnes couvertes d\'un clair de lune doux. À chaque station, le train prit un animal amical. D\'abord vint un lapin endormi, puis un petit ours et enfin un tout petit renard. Tout le monde trouva une place confortable. Le train avançait lentement sous un ciel plein d\'étoiles. Bientôt, les yeux de Milo commencèrent à se fermer. Il imagina le train l\'emmenant vers une belle terre remplie de rêves heureux. Le matin venu, Milo se réveilla avec le sourire. Fin.',
+      'ko-KR': '마일로는 세상에서 제일 아끼는 작은 장난감 기차가 있었어요. 매일 밤 잠들기 전, 방바닥에 알록달록한 기차 칸들을 예쁘게 늘어놓았지요. 어느 날 밤, 마일로는 이 기차가 신비로운 굿나잇 기차로 변하는 상상을 했어요. "모두 탑승하세요!" 다정한 기관사가 외쳤어요. 기차는 꿈나라를 향해 조용히 달리기 시작했어요. 은빛 꽃밭과 졸린 마을, 부드러운 달빛이 감싼 산들을 지나쳐 갔지요. 역마다 다정한 동물 친구들이 기차에 올랐어요. 졸린 토끼가 먼저 타고, 작은 곰보배, 그리고 아주 작은 여우까지 타게 되었어요. 모두 편안한 자리에 앉았지요. 기차는 별이 가득한 하늘 아래 천천히 움직였어요. 잠시 후, 마일로의 눈이 스르륵 감기기 시작했어요. 기차가 행복한 꿈으로 가득한 아름다운 나라로 데려다주는 상상을 하며, 마일로는 아침이 될 때까지 미소를 지으며 일어났답니다. 끝.',
+      'ja-JP': 'マイロには、何よりも大好きな小さなおもちゃの列車がありました。毎晩、寝る前になると、ベッドルームの床にカラフルな客車を並べました。ある夜、マイロはその列車が魔法の寝かしつけ列車に変身したのを想像しました。「ご乗車ありがとうございます！」優しい運転手さんが呼びかけました。列車は夢の国を静かに走っていきます。銀色の花畑、眠そうな村々、優しい月明かりに包まれた山々を通り過ぎました。駅ごとに、列車は優しい動物たちを乗せていきました。最初は眠そうなウサギさん、次に小さなクマさん、そして最後は小さなキツネさん。みんな居心地の良い席を見つけました。列車は星いっぱいの空の下をゆっくりと進んでいきました。やがて、マイロの目がトロンと閉じ始めました。列車が幸せな夢でいっぱいの美しい国へ連れて行ってくれるんだと想像しながら。朝が来ると、マイロはにっこり笑顔で目を覚ましました。おしまい。'
+    }
+  },
+  {
+    emoji: '✨',
+    title: {
+      'en-US': 'The Firefly’s Little Lantern', 'vi-VN': 'Chiếc đèn lồng nhỏ của đom đóm', 'zh-CN': '螢火蟲的小燈籠',
+      'ar-SA': 'فانوس اليراع الصغير', 'fr-FR': 'La Petite Lanterne de la Luciole', 'ko-KR': '반딧불이의 작은 랜턴', 'ja-JP': 'ホタルの小さなランタン'
+    },
+    text: {
+      'en-US': 'In a quiet garden lived a tiny firefly named Finn. Finn had a little light that glowed at night. One evening, Finn noticed a young caterpillar trying to find its way home beneath the leaves. “Do not worry,” said Finn. “I will help you.” Finn switched on his little lantern and flew slowly along the garden path. The caterpillar followed the gentle light past the flowers, around a small stone, and beneath a large green leaf. At last, they reached the caterpillar’s home. “Thank you for helping me,” said the caterpillar. Finn glowed with happiness. He returned to his favorite flower and looked at the stars. He realized that even a tiny light could help someone find their way. As the garden became quiet, Finn rested on a leaf and let his little lantern glow softly. The end.',
+      'vi-VN': 'Trong một khu vườn yên tĩnh có chú đom đóm nhỏ tên là Finn. Finn có một ánh sáng nhỏ phát ra vào ban đêm. Một buổi tối, Finn nhận thấy một chú sâu nhỏ đang cố gắng tìm đường về nhà dưới những chiếc lá. “Đừng lo lắng,” Finn nói. “Tôi sẽ giúp bạn.” Finn bật chiếc đèn lồng nhỏ của mình lên và bay chậm rãi dọc theo lối đi trong khu vườn. Chú sâu bướm đi theo ánh sáng dịu nhẹ qua những bông hoa, vòng qua một viên đá nhỏ và chui xuống dưới một chiếc lá xanh lớn. Cuối cùng, họ đã đến nhà của chú sâu. “Cảm ơn bạn đã giúp tôi,” chú sâu nói. Finn bừng sáng vì hạnh phúc. Cậu bay trở lại bông hoa yêu thích và ngắm nhìn các vì sao. Cậu nhận ra rằng ngay cả một ánh sáng nhỏ bé cũng có thể giúp ai đó tìm thấy đường đi. Khi khu vườn trở nên yên tĩnh, Finn nghỉ ngơi trên một chiếc lá và để chiếc đèn lồng nhỏ của mình phát sáng nhẹ nhàng. Hết.',
+      'zh-CN': '在一個安靜的花園裡，住著一隻叫芬恩的小螢火蟲。芬恩有一盞夜間發光的小燈。一天晚上，芬恩注意到一隻小毛毛蟲正試圖在葉子底下找到回家的路。「別擔心，」芬恩說，「我來幫你。」芬恩打開他的小燈籠，沿著花園小路緩緩飛去。毛毛蟲跟隨著柔和的光線，走過花朵，繞過小石頭，鑽到一片大綠葉底下。終於，他們到達了毛毛蟲的家。「謝謝你幫我，」毛毛蟲說。芬恩幸福得閃閃發光。他回到他最喜歡的花朵上，看著繁星。他意識到，即使是一束微弱的光也能幫別人找到方向。當花園變得安靜時，芬恩在一片葉子上休息，讓他的小燈籠柔和地發光。故事結束。',
+      'ar-SA': 'في حديقة هادئة، عاش يراع صغير اسمه فين. كان لدى فين ضوء صغير توهج في الليل. ذات أمسية، لاحظ فين يرققة صغيرة تحاول العثور على طريقها إلى المنزل تحت الأوراق. قال فين: "لا تقلقي، سأساعدك." أشعل فين فانوسه الصغير وطار ببطء على طول ممر الحديقة. اتبعت اليرقة الضوء اللطيف متجاوزة الزهور، وحول حجر صغير، وتحت ورقة خضراء كبيرة. أخيراً، وصلوا إلى منزل اليرقة. قالت اليرقة: "شكراً لك على مساعدتي." توهج فين بسعادة. عاد إلى زهرته المفضلة ونظر إلى النجوم. أدرك أن حتى الضوء الصغير يمكن أن يساعد شخصاً ما في العثور على طريقه. عندما أصبحت الحديقة هادئة، استراح فين على ورقة ودع فانوسه الصغير يتوهج بنعومة. النهاية.',
+      'fr-FR': 'Dans un jardin calme vivait une toute petite luciole nommée Finn. Finn avait une petite lumière qui brillait la nuit. Un soir, Finn remarqua une jeune chenille essayant de trouver son chemin vers la maison sous les feuilles. « Ne t\'inquiète pas », dit Finn. « Je vais t\'aider. » Finn alluma sa petite lanterne et vola lentement le long du sentier du jardin. La chenille suivit la douce lumière en passant devant les fleurs, autour d\'une petite pierre et sous une grande feuille verte. Enfin, ils arrivèrent à la maison de la chenille. « Merci de m\'avoir aidé », dit la chenille. Finn brilla de bonheur. Il retourna à sa fleur préférée et regarda les étoiles. Il comprit que même une petite lumière pouvait aider quelqu\'un à trouver son chemin. Le jardin devenant calme, Finn se reposa sur une feuille et laissa sa petite lanterne briller doucement. Fin.',
+      'ko-KR': '조용한 정원에는 핀이라는 아주 작은 반딧불이가 살았어요. 핀에게는 밤마다 반짝이는 작은 불빛이 있었지요. 어느 날 저녁, 핀은 어린 애벌레 한 마리가 나뭇잎 아래에서 집으로 가는 길을 찾지 못해 헤매는 것을 보았어요. "걱정 마, 내가 도와줄게" 핀이 말했어요. 핀은 작은 랜턴을 켜고 정원 길을 따라 천천히 날아갔어요. 애벌레는 꽃들을 지나, 작은 돌멩이를 돌아서, 커다란 초록 잎사귀 아래까지 부드러운 불빛을 따라 걸었어요. 마침내 애벌레의 집에 도착했지요. "도와주셔서 정말 고마워요," 애벌레가 말했어요. 핀은 행복으로 반짝반짝 빛났어요. 가장 좋아하는 꽃으로 돌아와 별들을 바라보았지요. 아주 작은 불빛 하나라도 누군가의 길을 찾아줄 수 있다는 것을 깨달았답니다. 정원이 조용해질 무렵, 핀은 나뭇잎 위에 편히 앉아 작은 랜턴을 은은하게 밝히며 잠에 들었어요. 끝.',
+      'ja-JP': '静かな庭に、フィンという名の小さなホタルが住んでいました。フィンは夜になると光る小さな明かりを持っていました。ある日の夕方、フィンは一枚の葉っぱの下で、おうちに帰れなくて困っている小さなイモムシを見つけました。「心配しないで、僕が手伝うよ」とフィンは言いました。フィンは小さなランタンの明かりをともして、庭の小道をゆっくりと飛んでいきました。イモムシは優しい光を追いかけて、お花を通り過ぎ、小さな石を回り、大きな緑の葉っぱの下を進みました。ついに、イモムシのお家に到着しました。「助けてくれてありがとう」とイモムシは言いました。フィンは嬉しさでピカピカと輝きました。お気に入りの花に戻り、星空を見上げました。どんなに小さな光でも、誰かの道案内ができるんだなと気づきました。庭が静かになると、フィンは葉っぱの上で休み、小さなランタンを優しく光らせました。おしまい。'
+    }
+  },
+  {
+    emoji: '🌊',
+    title: {
+      'en-US': 'Nora and the Gentle Sea', 'vi-VN': 'Nora và biển hiền hòa', 'zh-CN': '諾拉與溫柔的大海',
+      'ar-SA': 'نورا والبحر اللطيف', 'fr-FR': 'Nora et la Mer Douce', 'ko-KR': '노라와 부드러운 바다', 'ja-JP': 'ノラとやさしい海'
+    },
+    text: {
+      'en-US': 'Nora lived near a beautiful beach. She loved listening to the waves as they rolled gently onto the sand. One evening, Nora walked along the beach with her grandfather. They watched the sun slowly disappear beyond the sea. “Why do the waves keep coming back?” Nora asked. Grandfather smiled. “The sea has a gentle rhythm, just like breathing. The waves come in, and the waves go out.” Nora listened carefully. Whoosh went the waves. Whoosh went the breeze. A little crab walked sideways across the sand, and a seabird settled quietly on a rock. Nora collected one smooth shell and placed it beside her bed when she returned home. That night, she remembered the peaceful sound of the ocean. She closed her eyes and imagined the waves singing a soft lullaby. The end.',
+      'vi-VN': 'Nora sống gần một bãi biển tuyệt đẹp. Cô bé rất thích lắng nghe tiếng sóng vỗ nhẹ nhàng trên cát. Một buổi tối, Nora đi dạo dọc bãi biển cùng ông của mình. Họ ngắm mặt trời từ từ biến mất ngoài khơi xa. “Tại sao những con sóng cứ quay lại mãi vậy ông?” Nora hỏi. Ông mỉm cười. “Biển có một nhịp điệu nhẹ nhàng, giống như hơi thở vậy. Sóng dạt vào, và sóng rút ra.” Nora chăm chú lắng nghe. Xì xào tiếng sóng vỗ. Vi vu làn gió thổi. Một chú cua nhỏ đi ngang qua bãi cát, và một chú chim biển đậu yên lặng trên một tảng đá. Nora nhặt một chiếc vỏ sò nhẵn nhụi và đặt nó cạnh giường khi về nhà. Đêm đó, cô bé nhớ lại âm thanh yên bình của đại dương. Cô bé nhắm mắt lại và tưởng tượng những con sóng đang hát một khúc ru êm dịu. Hết.',
+      'zh-CN': '諾拉住在一個美麗的海灘附近。她喜歡聽海浪輕輕拍打沙灘的聲音。一天晚上，諾拉和爺爺一起在海灘上散步。他們看著太陽慢慢消失在海平面以下。「為什麼海浪總是一直回來呢？」諾拉問。爺爺笑了笑。「大海有著溫柔的節奏，就像呼吸一樣。海浪湧進來，又退出去。」諾拉仔細地聽著。海浪嘩啦啦地響。微風沙沙地吹。一隻小螃蟹橫著走過沙灘，一隻海鳥靜靜地落在一塊石頭上。諾拉撿了一枚光滑的貝殼，回家後放在床邊。那天晚上，她記住了大海平靜的聲音。她閉上眼睛，想像著海浪唱著柔和的搖籃曲。故事結束。',
+      'ar-SA': 'عاشت نورا بالقرب من شاطئ جميل. أحبت الاستماع إلى الأمواج وهي تتدحرج برفق على الرمال. ذات أمسية، مشت نورا على طول الشاطئ مع جدها. شاهدا الشمس تختفي ببطء وراء البحر. سألت نورا: "لماذا تستمر الأمواج في العودة؟" ابتسم الجد. "البحر له إيقاع لطيف، تماماً مثل التنفس. تأتي الأمواج وتذهب الأمواج." استمعت نورا بعناية. صوت الأمواج يتطاير. صوت النسيم يهب. مشى سلطعون صغير جانبياً عبر الرمال، واستقر طائر بحري بهدوء على صخرة. جمعت نورا صدفة ناعمة واحدة ووضعتها بجانب سريرها عندما عادت إلى المنزل. في تلك الليلة، تذكرت صوت المحيط الهادئ. أغلقَت عينيها وتخيلت الأمواج تغني تهويدة ناعمة. النهاية.',
+      'fr-FR': 'Nora vivait près d\'une belle plage. Elle adorait écouter les vagues se dérouler doucement sur le sable. Un soir, Nora se promena le long de la plage avec son grand-père. Ils regardèrent le soleil disparaître lentement derrière la mer. « Pourquoi les vagues reviennent-elles sans cesse ? » demanda Nora. Grand-père sourit. « La mer a un rythme doux, tout comme la respiration. Les vagues entrent et les vagues sortent. » Nora écouta attentivement. Whoosh, faisaient les vagues. Whoosh, faisait la brise. Un petit crabe marchait de côté sur le sable, et un oiseau de mer s\'installa tranquillement sur un rocher. Nora ramassa un coquillage lisse et le plaça à côté de son lit lorsqu\'elle rentra chez elle. Cette nuit-là, elle se souvint du son paisible de l\'océan. Elle ferma les yeux et imagina les vagues chantant une douce berceuse. Fin.',
+      'ko-KR': '노라는 아름다운 해변 근처에 살았어요. 모래사장에 부드럽게 밀려오는 파도 소리를 듣는 것을 정말 좋아했지요. 어느 날 저녁, 노라는 할아버지와 함께 해변을 산책했어요. 바다 너머로 해가 천천히 저물어가는 모습을 바라보았지요. "파도는 왜 자꾸 다시 밀려오는 거예요?" 노라가 물었어요. 할아버지가 미소 지으며 말씀하셨어요. "바다는 숨을 쉬는 것처럼 부드러운 리듬을 가지고 있단다. 파도가 밀려오고, 또 파도가 밀려 나가지." 노라는 귀를 기울였어요. 쏴아아 파도 소리가 들리고, 살랑살랑 바람 소리가 불어왔어요. 작은 게 한 마리가 모래 위를 옆으로 아르바바 기어 갔고, 바닷새 한 마리가 바위에 조용히 내려앉았어요. 노라는 매끄러운 조개껍데기 하나를 주워 집에 와서 침대 옆에 놓아두었어요. 그날 밤, 노라는 바다의 평화로운 소리를 기억하며 두 눈을 감고 파도가 부드러운 자장가를 불러주는 상상을 했답니다. 끝.',
+      'ja-JP': 'ノラは美しい浜辺の近くに住んでいました。砂浜に優しく打ち寄せる波の音を聞くのが大好きでした。ある日の夕方、ノラはおじいちゃんと一緒に浜辺を散歩しました。太陽がゆっくりと海の向こうに沈んでいくのを見つめました。「どうして波は何度も何度も戻ってくるの？」ノラが尋ねました。おじいちゃんはニコッと微笑みました。「海にはね、呼吸のように優しいリズムがあるんだよ。波が寄せてきて、そして波が引いていくんだ。」ノラはしっかりと耳を澄ましました。ザブーンと波が打ち寄せます。ヒューと風が吹きます。小さなカニが砂浜を横歩きし、海鳥が岩の上で静かに羽を休めました。ノラはツルツルの貝殻を一つ拾って、お家に帰ってベッドの脇に置きました。その夜、彼女は海の穏やかな音を思い出しました。目を閉じ、波が優しい子守唄を歌っているのを想像しました。おしまい。'
+    }
+  },
+  {
+    emoji: '🐻',
+    title: {
+      'en-US': 'The Bear Who Shared the Stars', 'vi-VN': 'Chú gấu chia sẻ những vì sao', 'zh-CN': '分享星星的熊',
+      'ar-SA': 'الدب الذي شارك النجوم', 'fr-FR': 'L\'Ours qui a Partagé les Étoiles', 'ko-KR': '별을 나누어 준 곰', 'ja-JP': '星を分け合ったクマ'
+    },
+    text: {
+      'en-US': 'In a green forest lived a friendly bear named Bruno. Bruno loved looking at the stars every night. One evening, he noticed a little fox sitting alone beneath a tree. “Why are you sad?” Bruno asked. “I have no one to watch the stars with me,” said the fox. Bruno smiled. “You can watch them with me!” They invited a rabbit, a squirrel, and a hedgehog to join them. Soon, all the friends were lying on the soft grass, looking up at the sparkling sky. Bruno pointed to a group of stars and imagined they formed a great shining bear. The fox found a star that looked like a tiny flower. Everyone shared their favorite star stories. When the night grew late, they wished each other sweet dreams and returned home. Bruno was happy because sharing makes beautiful moments even better. The end.',
+      'vi-VN': 'Trong một khu rừng xanh mát sống một chú gấu thân thiện tên là Bruno. Bruno rất thích ngắm sao mỗi đêm. Một buổi tối, chú nhận thấy một chú cáo nhỏ đang ngồi một mình dưới gốc cây. “Tại sao bạn buồn vậy?” Bruno hỏi. “Tôi không có ai để cùng ngắm sao cả,” chú cáo nói. Bruno mỉm cười. “Bạn có thể ngắm cùng tôi mà!” Họ mời thêm một chú thỏ, một chú sóc và một chú nhím cùng tham gia. Chẳng mấy chốc, tất cả các bạn đều nằm trên bãi cỏ mềm mại, ngước nhìn bầu trời lấp lánh. Bruno chỉ vào một nhóm các vì sao và tưởng tượng chúng tạo thành một chú gấu lớn tỏa sáng. Chú cáo tìm thấy một ngôi sao trông giống như một bông hoa nhỏ. Mọi người đều chia sẻ những câu chuyện về ngôi sao yêu thích của mình. Khi đêm đã muộn, họ chúc nhau những giấc mơ ngọt ngào và trở về nhà. Bruno rất hạnh phúc vì sự chia sẻ làm cho những khoảnh khắc đẹp đẽ trở nên tuyệt vời hơn. Hết.',
+      'zh-CN': '在綠色的森林裡住著一隻友善的熊叫布魯諾。布魯諾每天晚上都喜歡看星星。一天晚上，他注意到一隻小狐狸孤零零地坐在樹下。「你為什麼難過呢？」布魯諾問。「我沒有人陪我一起看星星，」狐狸說。布魯諾笑了。「你可以和我一起看呀！」他們邀請了一隻兔子、一隻松鼠和一隻刺蝟加入。很快，所有的朋友都躺在柔軟的草地上，仰望著閃爍的天空。布魯諾指著一群星星，想像它們組成了一隻閃閃發光的大熊。狐狸找到了一顆看起來像小花的星星。大家分享著自己最喜歡的星星故事。夜深了，他們互道晚安，祝彼此做個好夢，然後回家了。布魯諾很高興，因為分享讓美好的時刻變得更加美好。故事結束。',
+      'ar-SA': 'في غابة خضراء عاش دب ودود اسمه برونو. أحب برونو النظر إلى النجوم كل ليلة. ذات أمسية، لاحظ ثعلباً صغيراً يجلس وحيداً تحت شجرة. سأل برونو: "لماذا أنت حزين؟" قال الثعلب: "ليس لدي أحد لأراقب معه النجوم." ابتسم برونو. "يمكنك مشاهدتها معي!" دعوا أرنباً، وسنجاباً، وقنفذاً للانضمام إليهم. سرعان ما كان جميع الأصدقاء مستلقين على العشب الناعمة، ينظرون إلى السماء المتألقة. أشار برونو إلى مجموعة من النجوم وتخيل أنها تشكل دباً عظيماً متألقاً. وجد الثعلب نجماً يبدو وكنه زهرة صغيرة. شارك الجميع قصص نجومهم المفضلة. عندما اشتد الليل متأخراً، تمنى كل منهم للآخر أحلاماً سعيدة وعادوا إلى المنزل. كان برونو سعيداً لأن المشاركة تجعل اللحظات الجميلة أفضل. النهاية.',
+      'fr-FR': 'Dans une forêt verte vivait un ours amical nommé Bruno. Bruno adorait regarder les étoiles chaque nuit. Un soir, il remarqua un petit renard assis seul sous un arbre. « Pourquoi es-tu triste ? » demanda Bruno. « Je n\'ai personne avec qui regarder les étoiles », dit le renard. Bruno sourit. « Tu peux les regarder avec moi ! » Ils invitèrent un lapin, un écureuil et un hérisson à se joindre à eux. Bientôt, tous les amis étaient allongés sur l\'herbe douce, levant les yeux vers le ciel étincelant. Bruno désigna un groupe d\'étoiles et imagina qu\'elles formaient un grand ours brillant. Le renard trouva une étoile qui ressemblait à une petite fleur. Chacun partagea ses histoires d\'étoiles préférées. La nuit se faisant tard, ils se souhaitèrent de doux rêves et rentrèrent chez eux. Bruno était heureux car partager rend les beaux moments encore meilleurs. Fin.',
+      'ko-KR': '초록빛 숲속에는 브루노라는 다정한 곰이 살았어요. 브루노는 매일 밤 별들을 바라보는 것을 참 좋아했지요. 어느 날 저녁, 나무 아래 홀로 앉아 있는 작은 여우 한 마리를 발견했어요. "왜 슬픈 표정을 짓고 있니?" 브루노가 물었어요. "함께 별을 볼 친구가 없어요," 여우가 말했어요. 브루노가 미소 지었어요. "그럼 나와 함께 보자!" 토끼와 다람쥐, 고슴도치도 함께 초대했지요. 잠시 후, 모든 친구들이 부드러운 풀밭에 나란히 누워 반짝이는 밤하늘을 올려다보았어요. 브루노는 별 무리를 가리키며 커다란 빛나는 곰 모양이라고 상상했어요. 여우는 아주 작은 꽃처럼 생긴 별을 찾아냈지요. 저마다 가장 좋아하는 별 이야기를 나누었어요. 밤이 깊어지자 서로에게 예쁜 꿈을 꾸라고 인사하고 집으로 돌아갔답니다. 나누는 것 덕분에 아름다운 순간이 훨씬 더 행복해진다는 것을 깨달은 브루노는 아주 기뻤어요. 끝.',
+      'ja-JP': '緑の深い森に、ブルーノという優しいクマが住んでいました。ブルーノは毎晩、星空を眺めるのが大好きでした。ある日の夕方、小さなキツネが木の根元にポツンと一人で座っているのに気づきました。「どうしてそんなに悲しそうなの？」ブルーノが尋ねました。「一緒に星を見てくれるお友達がいないんだ」とキツネは言いました。ブルーノはにっこり微笑みました。「僕と一緒に見ようよ！」ウサギさんやリスさん、ハリネズミさんも誘ってみんなで集まりました。すぐに、友達みんなが柔らかい草の上に寝転がって、キラキラ輝く空を見上げました。ブルーノは星の集まりを指さして、大きなピカピカのクマの形をしているよと想像しました。キツネさんは、小さな花にそっくりな星を見つけました。みんなでお気に入りの星のお話を順番にシェアしました。夜がふけると、お互いに「良い夢をね」と言ってお家に帰りました。何かを分かち合うことで、ステキな時間がもっともっと素敵になるんだなと、ブルーノはとても幸せな気持ちになりました。おしまい。'
+    }
+  },
+  {
+    emoji: '🦕',
+    title: {
+      'en-US': 'The Sleepy Dinosaur', 'vi-VN': 'Chú khủng long buồn ngủ', 'zh-CN': '愛睡覺的恐龍',
+      'ar-SA': 'الديناصور النعسان', 'fr-FR': 'Le Dinosaure Endormi', 'ko-KR': '졸린 공룡', 'ja-JP': 'ねむそうな恐竜'
+    },
+    text: {
+      'en-US': 'Long ago, in a land of tall trees and gentle rivers, lived a little dinosaur named Dino. Dino loved running through the grass and splashing in the shallow water. But one evening, after a busy day of playing, Dino began to feel very sleepy. He said goodnight to the butterflies, goodnight to the flowers, and goodnight to his dinosaur friends. His mother helped him find a soft place beneath a leafy tree. Dino curled his little tail around himself. “Tell me a bedtime story,” he asked. Mother Dinosaur told him about a beautiful valley where dinosaurs helped one another and played happily together. Dino listened quietly. The stars appeared above the trees, and the gentle breeze rustled the leaves. Before the story ended, Dino’s eyes had closed. He dreamed of a wonderful adventure in the peaceful valley. The end.',
+      'vi-VN': 'Ngày xửa ngày xưa, ở vùng đất của những hàng cây cao và dòng sông hiền hòa, có một chú khủng long nhỏ tên là Dino. Dino thích chạy qua thảm cỏ và vùng vẫy trong làn nước nông. Nhưng một buổi tối, sau một ngày vui chơi bận rộn, Dino bắt đầu cảm thấy rất buồn ngủ. Chú nói chúc ngủ ngon với những chú bướm, chúc ngủ ngon với những bông hoa, và chúc ngủ ngon với những người bạn khủng long của mình. Mẹ đã giúp chú tìm một chỗ mềm mại bên dưới một tán cây rậm rạp. Dino cuộn chiếc đuôi nhỏ của mình lại. “Mẹ kể cho con nghe một câu chuyện trước khi đi ngủ đi,” chú yêu cầu. Mẹ Khủng long kể cho chú nghe về một thung lũng xinh đẹp nơi các loài khủng long giúp đỡ lẫn nhau và chơi đùa vui vẻ cùng nhau. Dino lắng nghe im lặng. Các vì sao xuất hiện trên ngọn cây, và làn gió nhẹ làm xào xạc những chiếc lá. Trước khi câu chuyện kết thúc, đôi mắt của Dino đã nhắm lại. Chú mơ về một cuộc phiêu lưu tuyệt vời trong thung lũng yên bình. Hết.',
+      'zh-CN': '很久以前，在一個高大樹木和溫柔河流的土地上，住著一隻叫迪諾的小恐龍。迪諾喜歡在草地上奔跑，在淺水中嬉戲。但有一天晚上，玩了一整天之後，迪諾開始覺得非常睏。他向蝴蝶道晚安，向花朵道晚安，向他的恐龍朋友道晚安。媽媽幫他在一棵枝繁葉茂的樹下找了一個柔軟的地方。迪諾把小尾巴捲起來。「給我講個睡前故事吧，」他要求道。恐龍媽媽給他講了一個美麗的山谷，那裡的恐龍互相幫助，快樂地一起玩耍。迪諾靜靜地聽著。星星出現在樹頂上，輕柔的微風沙沙作響。故事還沒講完，迪諾的眼睛已經閉上了。他夢見自己在寧靜的山谷中經歷了一場精彩的冒險。故事結束。',
+      'ar-SA': 'منذ زمن طويل، في أرض الأشجار العالية والأنهار اللطيفة، عاش ديناصور صغير اسمه ديو. أحب ديو الركض عبر العشب والرش في المياه الضحلة. ولكن ذات أمسية، بعد يوم حافل باللعب، بدأ ديو يشعر بالنعاس الشديد. قال تصبح على خير للفراشات، وتصبح على خير للزهور، وتصبح على خير لأصدقائه الديناصورات. ساعدته والدته في العثور على مكان ناعم تحت شجرة مورقة. لف ديو ذيله الصغير حول نفسه. سأل: "احكِ لي قصة قبل النوم." أخبرته أم الديناصور عن وادي جميل حيث ساعدت الديناصورات بعضها البعض ولعبت بسعادة معاً. استمع ديو بهدوء. ظهرت النجوم فوق الأشجار، وكانت النسيم اللطيف يحرك الأوراق. قبل أن تنتهي القصة، كانت عينا ديو قد أغلقتا. حلم بمغامرة رائعة في الوادي الهادئ. النهاية.',
+      'fr-FR': 'Il y a longtemps, dans un pays de grands arbres et de rivières douces, vivait un petit dinosaure nommé Dino. Dino adorait courir dans l\'herbe et éclabousser l\'eau peu profonde. Mais un soir, après une journée bien remplie à jouer, Dino commença à se sentir très fatigué. Il dit bonsoir aux papillons, bonsoir aux fleurs et bonsoir à ses amis dinosaures. Sa mère l\'aida à trouver un endroit doux sous un arbre feuillu. Dino enroula sa petite queue autour de lui. « Raconte-moi une histoire du soir », demanda-t-il. Maman Dinosaure lui parla d\'une belle vallée où les dinosaures s\'entraidaient et jouaient joyeusement ensemble. Dino écouta tranquillement. Les étoiles apparurent au-dessus des arbres et la douce brise fit bruisser les feuilles. Avant que l\'histoire ne se termine, les yeux de Dino s\'étaient fermés. Il rêva d\'une merveilleuse aventure dans la vallée paisible. Fin.',
+      'ko-KR': '아주 먼 옛날, 키 큰 나무들과 부드러운 강물이 흐르는 땅에 디노라는 아기 공룡이 살았어요. 디노는 풀밭을 뛰어다니고 얕은 물가방에서 텀벙거리며 노는 것을 정말 좋아했지요. 하지만 신나게 놀고 난 어느 날 저녁, 디노는 엄청나게 졸리기 시작했어요. 나비들에게도 안녕, 예쁜 꽃들에게도 안녕, 공룡 친구들에게도 모두 굿나잇 인사를 건넸어요. 엄마는 잎이 무성한 나무 아래 부드러운 자리를 찾아주셨어요. 디노는 작은 꼬리를 동그랗게 말고 누웠어요. "잠들기 전에 이야기 들려주세요," 디노가 졸린 목소리로 말했어요. 엄마 공룡은 공룡들이 서로를 돕고 행복하게 어울려 노는 아름다운 골짜기에 대해 들려주셨어요. 디노는 조용히 귀를 기울였지요. 나무들 위로 별들이 반짝이고, 산들바람이 나뭇잎을 스쳐 지나갔어요. 이야기가 끝나기도 전에 디노의 두 눈이 스르륵 감겼답니다. 평화로운 골짜기에서 펼쳐지는 멋진 모험을 꿈꾸며 깊은 잠에 빠져들었어요. 끝.',
+      'ja-JP': 'むかしむかし、大きな木と優しい川が流れる国に、ディノという小さな恐竜が住んでいました。ディノは草むらを走り回ったり、浅い水たまりでパシャパシャ遊ぶのが大好きでした。でも、たくさん遊んで忙しかったある日の夕方、ディノはとっても眠くなってきました。蝶々におやすみなさい、お花におやすみなさい、恐竜のお友達にもおやすみなさいを言いました。お母さんは、葉っぱの茂った木のの下に柔らかい場所を見つけてくれました。ディノは小さな尻尾を自分の体にくるっと巻きました。「ねえ、寝る前のお話を聴かせて」と彼は言いました。お母さん恐竜は、恐竜たちが助け合って楽しく遊んでいる美しい谷のお話を語って聞かせました。ディノは静かに聞き入りました。木々のの上に星が顔を出し、優しいそよ風が葉を揺らしました。お話が終わる前に、ディノの目はパタンと閉じていました。平和な谷でのステキな冒険の夢を見ながら眠りました。おしまい。'
+    }
+  },
+  {
+    emoji: '⛵',
+    title: {
+      'en-US': 'The Little Boat’s Quiet Journey', 'vi-VN': 'Hành trình yên bình của chiếc thuyền nhỏ', 'zh-CN': '小船的靜謐之旅',
+      'ar-SA': 'رحلة القارب الصغير الهادئة', 'fr-FR': 'Le Voyage Tranquille du Petit Bateau', 'ko-KR': '작은 배의 조용한 항해', 'ja-JP': '小さなボートの静かな旅'
+    },
+    text: {
+      'en-US': 'On the edge of a peaceful lake floated a little wooden boat named Bluebell. Bluebell loved carrying visitors across the water during the day. One evening, when the lake became quiet, Bluebell began a gentle journey beneath the moon. The water shimmered like silver, and the stars reflected on its surface. A friendly duck swam beside the boat. A fish jumped out of the water and made a tiny splash. Bluebell drifted past the reeds and the sleeping water lilies. There was no hurry. The night was calm and beautiful. At last, Bluebell returned to the little wooden dock. The boat rested quietly beside the shore. The moon watched over the lake while the wind whispered through the trees. Bluebell dreamed of another peaceful journey in the morning. The end.',
+      'vi-VN': 'Bên bờ một hồ nước yên bình nổi bồng bềnh một chiếc thuyền gỗ nhỏ tên là Bluebell. Bluebell thích chở khách qua mặt nước vào ban ngày. Một buổi tối, khi hồ nước trở nên yên tĩnh, Bluebell bắt đầu hành trình nhẹ nhàng dưới ánh trăng. Mặt nước lấp lánh như bạc, và những vì sao phản chiếu trên mặt nước. Một chú vịt thân thiện bơi bên cạnh chiếc thuyền. Một con cá nhảy ra khỏi mặt nước và tạo ra một tiếng tõm nhỏ. Bluebell trôi dạt qua những rặng sậy và những bông hoa súng đang ngủ. Không có gì phải vội vã. Đêm thật bình yên và xinh đẹp. Cuối cùng, Bluebell quay trở lại bến tàu gỗ nhỏ. Con thuyền nghỉ ngơi yên lặng bên bờ. Mặt trăng canh giữ hồ nước trong khi gió thì thầm qua những tán cây. Bluebell mơ về một hành trình yên bình khác vào buổi sáng. Hết.',
+      'zh-CN': '在一座平靜的湖邊，漂浮著一艘名叫藍鈴的小木船。藍鈴白天喜歡載著遊客過水。一天晚上，當湖面變得安靜時，藍鈴開始在月光下展開溫柔的旅程。水面閃爍著銀光，繁星倒映在水面上。一隻友善的鴨子游在船旁。一條魚跳出水面，濺起微小的水花。藍鈴漂過蘆葦叢和沉睡的睡蓮。不用急。夜晚平靜而美麗。終於，藍鈴回到了小木碼頭。小船靜靜地靠在岸邊休息。月亮守護著湖泊，微風在樹林間呢喃。藍鈴夢見清晨又將迎來另一段平靜的旅程。故事結束。',
+      'ar-SA': 'على حافة بحيرة هادئة، طفا قارب خشبي صغير اسمه بلوست. أحب بلوست حمل الزوار عبر الماء خلال النهار. ذات أمسية، عندما أصبحت البحيرة هادئة، بدأ بلوست رحلة لطيفة تحت القمر. كانت المياه تتلألأ مثل الفضة، وانعكست النجوم على سطحها. سبحت بطة ودودة بجانب القارب. قفزت سمكة من الماء وأحدثت رذاذاً ضئيلاً. انجرف بلوست عبر القصب وزنابق الماء النائمة. لم يكن هناك عجلة. كان الليل هادئاً وجميلاً. أخيراً، عاد بلوست إلى الرصيف الخشبي الصغير. استراح القارب بهدوء بجانب الشاطئ. راقب القمر البحيرة بينما كانت الرياح تهمس عبر الأشجار. حلم بلوست برحلة هادئة أخرى في الصباح. النهاية.',
+      'fr-FR': 'Au bord d\'un lac paisible flottait un petit bateau en bois nommé Bluebell. Bluebell adorait transporter des visiteurs à travers l\'eau pendant la journée. Un soir, le lac devenant calme, Bluebell entama un doux voyage sous la lune. L\'eau scintillait comme de l\'argent et les étoiles se reflétaient à sa surface. Un canard amical nageait à côté du bateau. Un poisson sautait hors de l\'eau en faisant un tout petit plouf. Bluebell dérivait devant les roseaux et les nénuphars endormis. Il n\'y avait pas pressé. La nuit était calme et belle. Enfin, Bluebell revint au petit quai en bois. Le bateau se reposait tranquillement au bord du rivage. La lune veillait sur le lac tandis que le vent murmurait à travers les arbres. Bluebell rêva d\'un autre voyage paisible le matin. Fin.',
+      'ko-KR': '평화로운 호숫가에는 블루벨이라는 작은 나무배가 떠 있었어요. 블루벨은 낮 동안 손님들을 태우고 물을 건너는 것을 정말 좋아했지요. 호수가 조용해진 어느 날 저녁, 블루벨은 달빛 아래에서 부드러운 항해를 시작했어요. 물은 은처럼 반짝이고 호수 표면 위로 별들이 비쳐 반짝였답니다. 다정한 오리 한 마리가 배 옆을 헤엄쳐 지나갔고, 물고기 한 마리가 퐁당 물 밖으로 튀어 오르며 작은 물보라를 일으켰어요. 블루벨은 갈대숲과 잠든 수련을 지나 둥둥 떠내려갔어요. 서둘 것 전혀 없었지요. 밤은 너무나 고요하고 아름다웠어요. 마침내 블루벨은 작은 나무 부두로 돌아왔어요. 배는 물가 옆에서 조용히 휴식을 취했어요. 바람이 나뭇잎 사이로 속삭이는 동안 달님은 호수를 다정하게 지켜주었답니다. 블루벨은 아침이 되면 또 다른 평화로운 항해를 떠나게 될 꿈을 꾸었어요. 끝.',
+      'ja-JP': '穏やかな湖のほとりに、ブルーベルという名の小さな木製のボートが浮かんでいました。ブルーベルは昼間、お客さんを乗せて水を渡るのが大好きでした。ある日の夕方、湖が静けさに包まれると、ブルーベルは月明かりの下で優しい旅に出発しました。水面は銀色にきらめき、星たちがその表面に映し出されていました。優しいアールがボートのそばを一緒に泳ぎ、一匹の魚が水面からピョンと飛び出して小さな水飛沫を上げました。ブルーベルはヨシ原や眠っているスイレンのそばをフワフワと漂っていきました。急ぐ必要なんてありません。夜は穏やかで美しかったのです。ついに、ブルーベルは小さな木の桟橋に戻ってきました。ボートは岸辺の横で静かに休みました。風が木々の間をそよそよと吹き抜ける中、お月さまが湖を見守っていました。ブルーベルは、朝になったらまた別の平和な旅に出かける夢を見ました。おしまい。'
+    }
+  },
+  {
+    emoji: '🌤️',
+    title: {
+      'en-US': 'Poppy’s Pillow of Clouds', 'vi-VN': 'Chiếc gối mây của Poppy', 'zh-CN': '波比的雲朵枕頭',
+      'ar-SA': 'وسادة بوبي من السحب', 'fr-FR': 'L\'Oreiller de Nuages de Poppy', 'ko-KR': '포피의 구름 베개', 'ja-JP': 'ポッピーの雲の枕'
+    },
+    text: {
+      'en-US': 'Poppy was a little girl who loved looking at the clouds. One afternoon, she saw a cloud shaped like a giant pillow. “I wish I could rest on a pillow as soft as that,” she said. That night, Poppy dreamed that a friendly cloud floated down to her window. “Come along,” said the cloud. “I will show you a peaceful place.” Poppy climbed aboard, and they floated above the sleeping town. They passed quiet houses, moonlit gardens, and forests filled with sleepy animals. At last, they reached a beautiful sky garden where the stars glowed like tiny lamps. Poppy lay down on a soft cloud pillow. The friendly cloud covered her with a blanket made of moonlight. Poppy smiled and closed her eyes. When she woke, the sun was shining through her window. The end.',
+      'vi-VN': 'Poppy là một cô bé rất thích ngắm mây. Một buổi chiều, cô bé nhìn thấy một đám mây có hình dạng giống như một chiếc gối khổng lồ. “Ước gì mình được nghỉ ngơi trên chiếc gối mềm mại như thế,” cô bé nói. Đêm hôm đó, Poppy mơ thấy một đám mây thân thiện bay xuống cửa sổ phòng mình. “Đi nào,” đám mây nói. “Tôi sẽ cho bạn xem một nơi yên bình.” Poppy trèo lên, và họ bay lơ lửng phía trên thị trấn đang ngủ say. Họ đi qua những ngôi nhà yên tĩnh, khu vườn ngập ánh trăng và những khu rừng đầy những con vật buồn ngủ. Cuối cùng, họ đến một khu vườn trên bầu trời xinh đẹp nơi các vì sao phát sáng như những chiếc đèn nhỏ. Poppy nằm xuống chiếc gối mây mềm mại. Đám mây thân thiện đắp cho cô bé chiếc chăn làm bằng ánh trăng. Poppy mỉm cười và nhắm mắt lại. Khi thức dậy, ánh mặt trời đang chiếu qua cửa sổ. Hết.',
+      'zh-CN': '波比是一個喜歡看雲的小女孩。一天下午，她看到一朵形狀像巨大枕頭的雲。「我真希望能躺在那麼軟的枕頭上休息呀，」她說。那天晚上，波比夢見一朵友善的雲飄到了她的窗前。「來吧，」雲說，「我帶你去一個和平的地方。」波比爬了上去，他們在沉睡的城鎮上空漂浮。他們經過安靜的房子、月光下的花園和住滿了睏倦動物的森林。最後，他們到達了一座美麗的天空花園，那裡的星星像小燈一樣發光。波比躺在柔軟的雲朵枕頭上。友善的雲給她蓋上一條用月光做成的毯子。波比微笑着閉上眼睛。醒來時，陽光正透過窗戶照進來。故事結束。',
+      'ar-SA': 'كانت بوبي فتاة صغيرة تحب النظر إلى السحب. ذات بعد ظهر، رأت سحابة على شكل وسادة عملاقة. قالت: "أتمنى لو استطعت الاستراحة على وسادة ناعمة مثل تلك." في تلك الليلة، حلمت بوبي أن سحابة ودودة طفت نحو نافذتها. قالت السحابة: "تعالي معي، سأريك مكاناً هادئاً." صعدت بوبي على متنها، وطافتا فوق المدينة النائمة. مرتا بمنازل هادئة، وحدائق مضاءة بنور القمر، وغابات مليئة بالحيوانات النعسانة. أخيراً، وصلتا إلى حديقة سماء جميلة حيث توهجت النجوم مثل المصابيح الصغيرة. استلقت بوبي على وسادة سحابية ناعمة. غطتها السحابة الودودة بطانية مصنوعة من ضوء القمر. ابتسمت بوبي وأغلقت عينيها. عندما استيقظت، كانت الشمس تشرق من نافذتها. النهاية.',
+      'fr-FR': 'Poppy était une petite fille qui adorait regarder les nuages. Un après-midi, elle vit un nuage en forme d\'oreiller géant. « J\'aimerais pouvoir me reposer sur un oreiller aussi doux que ça », dit-elle. Cette nuit-là, Poppy rêva qu\'un nuage amical flottait jusqu\'à sa fenêtre. « Viens », dit le nuage. « Je vais te montrer un endroit paisible. » Poppy monta à bord et ils flottèrent au-dessus de la ville endormie. Ils passèrent devant des maisons calmes, des jardins éclairés par la lune et des forêts remplies d\'animaux endormis. Enfin, ils atteignirent un beau jardin du ciel où les étoiles brillaient comme de petites lampes. Poppy s\'allongea sur un oreiller de nuage doux. Le nuage amical la couvrit d\'une couverture faite de clair de lune. Poppy sourit et ferma les yeux. À son réveil, le soleil brillait à travers sa fenêtre. Fin.',
+      'ko-KR': '포피는 구름을 바라보는 것을 참 좋아하는꼬마 숙녀였어요. 어느 날 오후, 커다란 베개 모양을 한 구름을 보게 되었지요. "저렇게 폭신한 베개 위에서 쉴 수 있다면 정말 좋을 텐데," 포피가 혼잣말을 했어요. 그날 밤, 포피는 다정한 구름 한 송이가 창가로 둥둥 떠오는 꿈을 꾸었어요. "이리 타렴, 평화로운 곳으로 데려다줄게," 구름이 말했어요. 포피가 올라타자, 두 사람은 잠든 마을 위를 둥둥 떠다녔어요. 조용한 집들과 달빛 가득한 정원, 졸린 동물들로 가득한 숲을 지나쳐 갔지요. 마침내 별들이 작은 등불처럼 반짝이는 아름다운 하늘 정원에 도착했어요. 포피는 부드러운 구름 베개 위에 살포시 누웠어요. 다정한 구름은 달빛으로 만든 포근한 담요를 덮어주었답니다. 포피는 미소를 지으며 두 눈을 감았어요. 아침이 되어 눈을 뜨니, 따사로운 햇살이 창문 너머로 반짝이고 있었어요. 끝.',
+      'ja-JP': 'ポッピーは雲を眺めるのが大好きな女の子でした。ある日の午後、大きな枕の形をした雲を見つけました。「あんなにフカフカの枕で休めたらいいのにな」と彼女は言いました。その夜、ポッピーは優しい雲が窓辺にフワフワと浮かんできた夢を見ました。「さあ、おいで」と雲が言いました。「平和な場所に連れていってあげる。」ポッピーが乗ると、眠っている街の上をふんわりと浮かんでいきました。静かなお家、月明かりに照らされた庭、眠たげな動物たちがいっぱいの森を通り過ぎました。ついに、星たちが小さなランプのようにピカピカ光る、美しい天空の庭園に到着しました。ポッピーは柔らかい雲の枕の上に横になりました。優しい雲は、月光でできた毛布を彼女にかけてくれました。ポッピーはにっこり微笑んで目を閉じました。朝になって目を覚ますと、窓から太陽の光がキラキラと差し込んでいました。おしまい。'
+    }
+  },
+  {
+    emoji: '🌷',
+    title: {
+      'en-US': 'The Kindness Garden', 'vi-VN': 'Khu vườn lòng tốt', 'zh-CN': '善良的花園',
+      'ar-SA': 'حديقة اللطف', 'fr-FR': 'Le Jardin de la Gentillesse', 'ko-KR': '친절의 정원', 'ja-JP': '親切の庭'
+    },
+    text: {
+      'en-US': 'At the end of a little village was a garden that belonged to a kind old gardener. One morning, a young girl named Emma visited the garden. She noticed that some flowers were thirsty and a few plants needed care. “May I help?” Emma asked. The gardener smiled and gave her a small watering can. Emma watered the flowers carefully. She picked up fallen leaves and planted a tiny seed. Every day, Emma returned to help. Soon, the garden became full of beautiful flowers, butterflies, and buzzing bees. Other children noticed the lovely garden and came to help too. The gardener thanked them all. “Kindness is like a seed,” he said. “When we plant it and care for it, wonderful things can grow.” Emma went home feeling happy. Shekg knew small acts of kindness could make the world more beautiful. The end.',
+      'vi-VN': 'Cuối một ngôi làng nhỏ có một khu vườn thuộc về một người làm vườn già tốt bụng. Một buổi sáng, một cô bé tên Emma đến thăm khu vườn. Cô bé nhận thấy một số bông hoa đang khát nước và một vài loại cây cần được chăm sóc. “Con có thể giúp một tay không ạ?” Emma hỏi. Người làm vườn mỉm cười và đưa cho cô một chiếc bình tưới nhỏ. Emma tưới nước cho những bông hoa cẩn thận. Cô nhặt lá rụng và gieo một hạt giống nhỏ. Ngày nào Emma cũng quay lại để giúp đỡ. Chẳng mấy chốc, khu vườn tràn ngập những bông hoa đẹp, bướm và những chú ong vo ve. Những đứa trẻ khác chú ý đến khu vườn đáng yêu và cũng đến giúp đỡ. Người làm vườn cảm ơn tất cả mọi người. “Lòng tốt giống như một hạt giống,” ông nói. “Khi chúng ta gieo trồng và chăm sóc nó, những điều tuyệt vời có thể phát triển.” Emma ra về với cảm giác hạnh phúc. Cô bé biết rằng những hành động tử tế nhỏ bé có thể làm cho thế giới trở nên tươi đẹp hơn. Hết.',
+      'zh-CN': '在小村莊的盡頭，有一座屬於一位慈祥老園丁的花園。一天早上，一個叫艾瑪的小女孩參觀了花園。她注意到有些花渴了，有些植物需要照顧。「我可以幫忙嗎？」艾瑪問。園丁笑了笑，給她一個小水壺。艾瑪小心翼翼地給花澆水。她撿起落葉，種下一顆小小的種子。每天，艾瑪都會回來幫忙。很快，花園裡開滿了美麗的花朵，蝴蝶飛舞，蜜蜂嗡嗡作響。其他孩子注意到了這座可愛的花園，也來幫忙。園丁感謝了大家。「善良就像一顆種子，」他說，「當我們種下它並悉心照料時，美好的事物就會生長。」艾瑪開心地回家了。她知道微小的善舉能讓世界變得更美好。故事結束。',
+      'ar-SA': 'في نهاية قرية صغيرة كانت هناك حديقة تملكها بستاني عجوز طيب. ذات صباح، زارت فتاة صغيرة اسمها إيما الحديقة. لاحظت أن بعض الزهور كانت عطشى وبعض النباتات بحاجة إلى رعاية. سألت إيما: "هل يمكنني المساعدة؟" ابتسم البستاني وأعطاها مرشاً صغيراً للماء. سقت إيما الزهور بعناية. التقطت الأوراق الساقطة وشرعت في زراعة بدرة صغيرة. كل يوم، عادت إيما للمساعدة. سرعان ما أصبحت الحديقة مليئة بالزهور الجميلة، والفراشات، والنحل الطنان. لاحظ الأطفال الآخرون الحديقة الجميلة وجاءوا للمساعدة أيضاً. شكرهم البستاني جميعا. قال: "اللطف مثل البذرة. عندما نزرعها ونعتني بها، يمكن أن تنمو أشياء رائعة." عادت إيما إلى المنزل وهي تشعر بالسعادة. كانت تعلم أن أفعال اللطف الصغيرة يمكن أن تجعل العالم أكثر جمالاً. النهاية.',
+      'fr-FR': 'Au bout d\'un petit village se trouvait un jardin qui appartenait à un vieux jardinier gentil. Un matin, une jeune fille nommée Emma visita le jardin. Elle remarqua que certaines fleurs avaient soif et que quelques plantes avaient besoin de soins. « Puis-je aider ? » demanda Emma. Le jardinier sourit et lui donna un petit arrosoir. Emma arrosa les fleurs avec soin. Elle ramassa les feuilles mortes et planta une toute petite graine. Chaque jour, Emma revenait pour aider. Bientôt, le jardin devint plein de belles fleurs, de papillons et d\'abeilles bourdonnantes. D\'autres enfants remarquèrent le charmant jardin et vinrent aider aussi. Le jardinier les remercia tous. « La gentillesse est comme une graine », dit-il. « Quand nous la plantons et en prenons soin, de belles choses peuvent pousser. » Emma rentra chez elle en se sentant heureuse. Elle savait que de petits actes de gentillesse pouvaient rendre le monde plus beau. Fin.',
+      'ko-KR': '작은 마을 끝자락에는 마음씨 좋은 늙은 정원사의 정원이 있었어요. 어느 날 아침, 엠마라는 어린 소녀가 그 정원을 구경하러 갔어요. 목말라 하는 꽃들도 보이고 보살핌이 필요한 식물들도 눈에 띄었지요. "제가 도와드릴까요?" 엠마가 물었어요. 정원사는 미소를 지으며 작은 물뿌리개를 건네주었어요. 엠마는 조심스럽게 꽃들에 물을 주었어요. 떨어진 나뭇잎을 줍고 아주 작은 씨앗도 심었답니다. 엠마는 매일 정원에 와서 일손을 도왔어요. 얼마 지나지 않아 정원은 아름다운 꽃들과 나비, 윙윙거리는 벌들로 가득해졌어요. 다른 아이들도 예쁜 정원을 보고 함께 와서 도와주었지요. 정원사는 아이들 모두에게 고마움을 전했어요. "친절이란 씨앗과 같단다. 우리가 그것을 심고 잘 가꾸면, 놀랍고 멋진 일들이 자라나게 되지." 엠마는 행복한 마음으로 집으로 돌아갔어요. 아주 사소한 친절이라도 세상을 더욱 아름답게 만들 수 있다는 것을 깊이 깨달았답니다. 끝.',
+      'ja-JP': '小さな村の端っこに、優しいおじいさんの庭がありました。ある日の朝、エマという女の子がその庭に遊びに行きました。いくつかのお花が喉を渇かせていて、お手入れが必要な植物があることに気づきました。「お手伝いしてもいいですか？」エマが尋ねました。おじいさんはにっこり笑って、小さな水やりじょうろをくれました。エマは丁寧にお花にお水をあげました。落ち葉を拾い、小さな種を植えました。毎日、エマはお手伝いにやってきました。すぐに、庭は美しいお花や蝶々、ぶんぶん飛ぶ蜂たちでいっぱいになりました。他の子供たちも素敵な庭に気づいて、お手伝いにやってきました。おじいさんはみんなにお礼を言いました。「優しさはね、種のようなものなんだよ。私たちがそれを植えて大切に育てれば、素晴らしい奇跡が育っていくんだよ。」エマは幸せな気持ちでお家に帰りました。小さな優しさの積み重ねが、この世界をもっともっと美しくするんだということを、彼女はよく知っていました。おしまい。'
+    }
+  },
+  {
+    emoji: '🐿️',
+    title: {
+      'en-US': 'Sammy Squirrel’s Last Acorn', 'vi-VN': 'Hạt dẻ cuối cùng của sóc Sammy', 'zh-CN': '小松鼠薩米的最後一顆橡果',
+      'ar-SA': 'بلوطة السنجاب سامي الأخيرة', 'fr-FR': 'Le Dernier Gland de Sammy l\'Écureuil', 'ko-KR': '다람쥐 새미의 마지막 도토리', 'ja-JP': 'リスのサミーの最後のドングリ'
+    },
+    text: {
+      'en-US': 'Sammy the squirrel loved collecting acorns in the forest. One chilly morning, Sammy found one large, shiny acorn beneath an oak tree. “This will be my special acorn,” he said. As he carried it home, he met a hungry little mouse. “Do you have anything to eat?” asked the mouse. Sammy looked at his special acorn. He had only one, but he decided to share it. “Here, let us enjoy it together,” he said. They sat beneath the oak tree and shared the acorn. The mouse smiled and thanked Sammy. Later, the mouse showed Sammy a hidden place where many acorns had fallen. Sammy laughed with delight. He had shared what he had, and kindness had brought him a new friend. That evening, Sammy curled up in his warm nest and dreamed happily. The end.',
+      'vi-VN': 'Chú sóc Sammy rất thích thu thập hạt dẻ trong rừng. Một buổi sáng se lạnh, Sammy tìm thấy một hạt dẻ lớn và sáng bóng dưới gốc cây sồi. “Đây sẽ là hạt dẻ đặc biệt của mình,” chú nói. Khi đang mang nó về nhà, chú gặp một chú chuột nhỏ đang đói bụng. “Bạn có gì để ăn không?” chú chuột hỏi. Sammy nhìn hạt dẻ đặc biệt của mình. Chú chỉ có một hạt duy nhất, nhưng chú quyết định chia sẻ nó. “Nào, chúng ta cùng thưởng thức nhé,” chú nói. Họ ngồi dưới gốc cây sồi và chia nhau hạt dẻ. Chú chuột mỉm cười và cảm ơn Sammy. Sau đó, chú chuột đã chỉ cho Sammy một nơi ẩn trù mà rất nhiều hạt dẻ đã rơi xuống. Sammy cười sung sướng. Chú đã chia sẻ những gì mình có, và lòng tốt đã mang lại cho chú một người bạn mới. Tối hôm đó, Sammy cuộn mình trong chiếc tổ ấm áp và mơ những giấc mơ hạnh phúc. Hết.',
+      'zh-CN': '小松鼠薩米喜歡在森林裡收集橡果。一個寒冷的早晨，薩米在橡樹下發現了一顆又大又閃亮的橡果。「這將是我的特別橡果，」他說。當他把它帶回家時，他遇到了一隻飢餓的小老鼠。「你有什麼吃的嗎？」老鼠問。薩米看著他的特別橡果。他只有一顆，但他決定分享它。「來吧，我們一起享用吧，」他說。他們坐在橡樹下分享了橡果。老鼠微笑着感謝薩米。後來，老鼠帶薩米去了一個藏有許多落下的橡果的秘密地方。薩米開心地笑了。他分享了他擁有的東西，善良為他帶來了新朋友。那天晚上，薩米蜷縮在溫暖的巢穴裡，幸福地做着夢。故事結束。',
+      'ar-SA': 'أحب السنجاب سامي جمع البلوط في الغابة. في صباح بارد، وجد سامي بلوطة كبيرة لامعة تحت شجرة بلوط. قال: "ستكون هذه بلوطتي الخاصة." بينما كان يحملها إلى المنزل، واجه فأراً صغيراً جائعاً. سأل الفأر: "هل لديك أي شيء تأكله؟" نظر سامي إلى بلوطته الخاصة. كان لديه واحدة فقط، لكنه قرر مشاركتها. قال: "هنا، دعنا نستمتع بها معاً." جلسا تحت شجرة بلوط وتقاسما البلوطة. ابتسم الفأر وشكر سامي. لاحقاً، أراى الفأر سامي مكاناً مخفياً حيث سقط الكثير من البلوط. ضحك سامي بفرح. لقد شارك ما لديه، وقد جلب له اللطف صديقاً جديداً. في تلك الليلة، انكمش سامي في عشه الدافئ وحلم بسعادة. النهاية.',
+      'fr-FR': 'Sammy l\'écureuil adorait ramasser des glands dans la forêt. Par un matin frais, Sammy trouva un grand gland brillant sous un chêne. « Ce sera mon gland spécial », dit-il. En le ramenant à la maison, il rencontra une petite souris affamée. « As-tu quelque chose à manger ? » demanda la souris. Sammy regarda son gland spécial. Il n\'en avait qu\'un, mais il décida de le partager. « Tiens, savourons-le ensemble », dit-il. Ils s\'assirent sous le chêne et partagèrent le gland. La souris sourit et remercia Sammy. Plus tard, la souris montra à Sammy un endroit caché où de nombreux glands étaient tombés. Sammy rit de joie. Il avait partagé ce qu\'il avait, et la gentillesse lui avait apporté un nouvel ami. Ce soir-là, Sammy se blottit dans son nid chaud et rêva heureux. Fin.',
+      'ko-KR': '다람쥐 새미는 숲속에서 도토리를 모으는 것을 정말 좋아했어요. 쌀쌀한 어느 날 아침, 새미는 참나무 아래에서 크고 반짝이는 도토리 하나를 발견했어요. "이건 나의 특별한 도토리가 될 거야," 새미가 말했지요. 도토리를 들고 집으로 가던 길에, 배가 고픈 아기 생쥐 한 마리를 만났어요. "먹을 것 좀 있니?" 생쥐가 물었어요. 새미는 자신이 가진 특별한 도토리를 내려다보았어요. 딱 하나뿐이었지만, 함께 나누어 먹기로 결심했지요. "자, 우리 같이 맛있게 먹자," 새미가 말했어요. 둘은 참나무 아래에 나란히 앉아 도토리를 나누어 먹었어요. 생쥐는 미소를 지으며 새미에게 고마움을 전했어요. 나중에 생쥐는 도토리가 수없이 떨어져 있는 비밀 장소를 새미에게 알려주었어요. 새미는 기쁨에 겨워 꺄르르 웃었지요. 자신이 가진 것을 기꺼이 나누어 준 덕분에 친절이 새로운 친구를 선물해 준 거예요. 그날 밤, 새미는 따뜻한 보물 둥지에 웅크리고 누워 행복한 꿈을 꾸었답니다. 끝.',
+      'ja-JP': 'リスのサミーは、森の中でドングリを集めるのが大好きでした。肌寒いある朝、サミーはオークの木の下で、大きくてピカピカ光るドングリを一つ見つけました。「これが僕の特別なドングリだぞ」と彼は言いました。お家に持って帰る途中、お腹をペコペコに空かせた小さなネズミに出会いました。「何か食べるもの、持っていない？」とネズミが尋ねました。サミーは自分の特別なドングリを見つめました。一つしかなかったけれど、分け合うことに決めました。「さあ、一緒に美味しく食べようよ」と彼は言いました。二人はオークの木の下に座って、ドングリを分け合いました。ネズミはニコッと笑ってサミーにお礼を言いました。しばらくして、ネズミはサミーに、ドングリがたくさん落ちている秘密の場所を教えてくれました。サミーは大喜びでケラケラ笑いました。自分の持っているものを分け合ったことで、優しさが新しいお友達を連れてきてくれたのです。その夜、サミーは温かいベッドに丸まって、幸せな夢を見ました。おしまい。'
+    }
+  },
+  {
+    emoji: '🌈',
+    title: {
+      'en-US': 'The Rainbow After the Rain', 'vi-VN': 'Cầu vồng sau cơn mưa', 'zh-CN': '雨後彩虹',
+      'ar-SA': 'قزح بعد المطر', 'fr-FR': 'L\'Arc-en-ciel après la Pluie', 'ko-KR': '비 갠 뒤의 무지개', 'ja-JP': '雨あがりの虹'
+    },
+    text: {
+      'en-US': 'A little girl named Mia loved sunny days. One afternoon, dark clouds covered the sky, and rain began to fall. Mia looked outside and felt disappointed. “Will the sunshine ever return?” she asked her mother. “Every rainy day has its own beauty,” Mother replied. They listened to the raindrops tapping gently on the roof. After a while, the rain stopped, and the clouds slowly moved away. A beautiful rainbow appeared across the sky. Mia ran to the window and smiled. “Look! So many colors!” Her mother explained that rainbows appear when sunlight shines through tiny drops of water. Mia watched the colorful rainbow until it slowly faded. That evening, she remembered that difficult moments do not last forever, and beautiful things can follow them. The end.',
+      'vi-VN': 'Một cô bé tên Mia rất thích những ngày nắng. Một buổi chiều, những đám mây đen bao phủ bầu trời, và trời bắt đầu đổ mưa. Mia nhìn ra bên ngoài và cảm thấy thất vọng. “Liệu ánh nắng có quay lại không mẹ?” cô bé hỏi mẹ. “Mỗi ngày mưa đều có vẻ đẹp riêng của nó,” Mẹ trả lời. Họ lắng nghe những hạt mưa rơi lộp bộp nhẹ nhàng trên mái nhà. Sau một lúc, trời tạnh mưa, và những đám mây từ từ trôi đi. Một chiếc cầu vồng tuyệt đẹp xuất hiện vắt ngang bầu trời. Mia chạy ra cửa sổ và mỉm cười. “Nhìn kìa! Nhiều màu sắc quá!” Mẹ giải thích rằng cầu vồng xuất hiện khi ánh sáng mặt trời chiếu qua những giọt nước nhỏ. Mia ngắm nhìn chiếc cầu vồng đầy màu sắc cho đến khi nó mờ dần. Tối hôm đó, cô bé nhớ rằng những khoảnh khắc khó khăn sẽ không kéo dài mãi mãi, và những điều tốt đẹp luôn theo sau. Hết.',
+      'zh-CN': '一個叫米婭的小女孩喜歡晴天。一天下午，烏雲密布，下起了雨。米婭看著外面，感到很失望。「陽光還會回來嗎？」她問媽媽。「每一個雨天都有它自己的美，」媽媽回答說。他們聽着雨滴輕輕敲打屋頂的聲音。過了一會兒，雨停了，雲慢慢散開了。一道美麗的彩虹橫跨天空。米婭跑到窗前笑了。「看！好多顏色啊！」媽媽解釋說，當陽光穿過微小的水滴時，就會出現彩虹。米婭一直看著五顏六色的彩虹，直到它慢慢褪去。那天晚上，她記住了，困難的時刻不會永遠持續下去，美好的事物隨後就會到來。故事結束。',
+      'ar-SA': 'أحبت فتاة صغيرة اسمها ميا الأيام المشمسة. ذات بعد ظهر، غطت الغيوم السوداء السماء، وبدأ المطر يتساقط. نظرت ميا إلى الخارج وشعرت خيبة أمل. سألت والدتها: "هل ستعود الشمس يوماً؟" أجابت الأم: "كل يوم مطير له جماله الخاص." استمعا إلى قطرات المطر وهي تنقر برفق على السقف. بعد ที่ قليل، توقف المطر، وابتعدت الغيوم ببطء. ظهر قوس قزح جميل عبر السماء. ركضت ميا إلى النافذة وابتسمت. "انظري! الكثير من الألوان!" أوضحت الأم أن قوس قزح يظهر عندما يسطع ضوء الشمس من خلال قطرات الماء الصغيرة. شاهدت ميا قوس قزح الملون حتى تلاشى ببطء. في تلك الأيلة، تذكرت أن اللحظات الصعبة لا تدوم إلى الأبد، وأن الأشياء الجميلة يمكن أن تتبعها. النهاية.',
+      'fr-FR': 'Une petite fille nommée Mia adorait les jours ensoleillés. Un après-midi, des nuages sombres couvrirent le ciel et la pluie commença à tomber. Mia regarda dehors et se sentit déçue. « Le soleil va-t-il revenir ? » demanda-t-elle à sa mère. « Chaque jour de pluie a sa propre beauté », répondit Mère. Ils écoutèrent les gouttes de pluie tapoter doucement sur le toit. Au bout d\'un moment, la pluie s\'arrêta et les nuages s\'éloignèrent lentement. Un bel arc-en-ciel apparut dans le ciel. Mia courut à la fenêtre et sourit. « Regarde ! Tant de couleurs ! » Sa mère expliqua que les arc-en-ciel apparaissent lorsque la lumière du soleil brille à travers de petites gouttes d\'eau. Mia regarda l\'arc-en-ciel coloré jusqu\'à ce qu\'il s\'estompe lentement. Ce soir-là, elle se souvint que les moments difficiles ne dure pas éternellement et que de belles choses peuvent les suivre. Fin.',
+      'ko-KR': '미아라는꼬마 숙녀는 화창한 날을 정말 좋아했어요. 어느 날 오후, 검은 먹구름이 하늘을 뒤덮더니 비가 내리기 시작했어요. 미아는 바깥을 내다보며 실망스러운 표정을 지었지요. "언제쯤 다시 햇님을 볼 수 있을까요?" 미아가 엄마에게 물었어요. "비가 오는 날마다 그날만의 특별한 아름다움이 있단다," 엄마가 대답하셨어요. 두 사람은 지붕 위를 토독토독 두드리는 빗소리에 귀를 기울였어요. 잠시 뒤, 비가 그치고 구름이 서서히 걷혔어요. 하늘 가득 아름다운 무지개가 나타났지요. 미아는 창가로 달려가 활짝 웃었어요. "저기 봐요! 색깔이 정말 많아요!" 엄마는 햇빛이 작은 물방울들을 통과할 때 무지개가 만들어지는 것이라고 설명해 주셨어요. 미아는 무지개가 서서히 옅어질 때까지 아름다운 색동다리를 한참이나 바라보았답니다. 그날 밤, 미아는 힘든 순간이 영원히 계속되지는 않으며 그 뒤에는 언제나 멋진 일이 찾아온다는 것을 마음속 깊이 기억했어요. 끝.',
+      'ja-JP': 'ミアという女の子は、晴れの日が大好きでした。ある日の午後、黒い雲が空を覆い、雨が降り始めました。ミアは外を眺めてガッカリしました。「お日さまはもう戻ってこないのかな？」彼女はお母さんに尋ねました。「雨の日には、雨の日ならではの美しさがあるのよ」とお母さんは答えました。二人で、屋根をトントンと優しく叩く雨の音に耳を澄ましました。しばらくすると雨が上がり、雲がゆっくりと遠ざかっていきました。空の向こうに美しい虹がかかりました。ミアは窓へ走っていってニコッと笑いました。「見て！いろんな色がいっぱい！」お母さんは、太陽の光が小さな水滴を通る時に虹が現れるんだよと説明してくれました。ミアは、虹がゆっくりと消えていくまで、色鮮やかな虹をずっと眺めていました。その夜、彼女は思い出しました。大変な瞬間はいつまでも続くわけではなく、そのあとには素敵なことがやってくるんだということを。おしまい。'
+    }
+  },
+  {
+    emoji: '🌳',
+    title: {
+      'en-US': 'Goodnight, Little Woodland', 'vi-VN': 'Chúc ngủ ngon, khu rừng nhỏ', 'zh-CN': '晚安，小森林',
+      'ar-SA': 'تصبح على خير ايها الغابة الصغيرة', 'fr-FR': 'Bonne Nuit, Petite Forêt', 'ko-KR': '굿나잇, 작은 숲속', 'ja-JP': 'おやすみ、小さな森'
+    },
+    text: {
+      'en-US': 'As the sun disappeared behind the hills, the woodland began preparing for sleep. The rabbits returned to their burrows. The birds settled into their nests, and the little hedgehogs curled up beneath the leaves. A young owl named Oliver watched from a branch. “Goodnight, flowers,” he whispered. The flowers gently closed their petals. “Goodnight, river,” he whispered. The river continued flowing softly over the stones. “Goodnight, little foxes,” he whispered. The fox family snuggled together inside their cozy den. One by one, the stars appeared in the sky. Oliver spread his wings and flew quietly above the sleeping trees. The whole woodland was peaceful. The moon shone gently over every home, and the cool night breeze moved through the leaves. Soon, even Oliver found a comfortable branch and closed his eyes. Goodnight, woodland. Sweet dreams to everyone. The end.',
+      'vi-VN': 'Khi mặt trời khuất sau những ngọn đồi, khu rừng bắt đầu chuẩn bị chìm vào giấc ngủ. Những chú thỏ trở về hang của mình. Những chú chim bay về tổ, và những chú nhím nhỏ cuộn mình dưới những chiếc lá. Một chú cú non tên là Oliver quan sát từ một cành cây. “Chúc ngủ ngon, các loài hoa,” chú thì thầm. Những bông hoa nhẹ nhàng khép cánh lại. “Chúc ngủ ngon, dòng sông,” chú thì thầm. Dòng sông tiếp tục chảy nhẹ nhàng qua những hòn đá. “Chúc ngủ ngon, những chú cáo nhỏ,” chú thì thầm. Gia đình cáo rúc vào nhau bên trong chiếc hang ấm cúng. Từng ngôi sao xuất hiện trên bầu trời. Oliver sải cánh và bay lặng lẽ phía trên những tán cây đang ngủ. Cả khu rừng thật bình yên. Ánh trăng chiếu sáng dịu dàng lên mọi mái nhà, và cơn gió đêm mát lạnh lướt qua những chiếc lá. Chẳng mấy chốc, ngay cả Oliver cũng tìm được một cành cây thoải mái và nhắm mắt lại. Chúc ngủ ngon, khu rừng. Chúc mọi người có những giấc mơ ngọt ngào. Hết.',
+      'zh-CN': '當太陽消失在山丘後面時，森林開始準備入睡。兔子們回到了洞穴。小鳥們回到了巢穴，小刺貓們在樹葉下蜷縮起來。一隻叫奧利弗的小貓頭鷹在樹枝上觀望著。「晚安，花朵，」他低聲說。花朵們輕輕合上了花瓣。「晚安，河流，」他低聲說。河流繼續輕柔地流過石頭。「晚安，小狐狸，」他低聲說。狐狸一家緊緊依偎在我溫暖的巢穴裡。星星一顆接一顆地出現在天空中。奧利弗張開翅膀，在沉睡的樹木上空靜靜地飛翔。整個森林一片寧靜。月光溫柔地照耀著每一個家，涼爽的夜風在葉子間穿梭。很快，連奧利弗也找到了一個舒適的樹枝，閉上了眼睛。晚安，森林。大家做個好夢。故事結束。',
+      'ar-SA': 'عندما اختفت الشمس خلف التلال، بدأت الغابة تستعد للنوم. عاد الأرانب إلى جحورهم. استقرت الطيور في أعشاشها، وانكمشت القنافذ الصغيرة تحت الأوراق. راقب بومة صغيرة اسمها أوليفر من على فرع شجرة. همس: "تصبحين على خير ايتها الزهور." أغلقت الزهور بتلاتها بلطف. همس: "تصبح على خير أيها النهر." استمر النهر في التدفق بهدوء فوق الحجارة. همس: "تصبحون على خير ايها الثعالب الصغيرة." تجمعت عائلة الثعالب معاً داخل عرينها الدافئ. واحدة تلو الأخرى، ظهرت النجوم في السماء. نشر أوليفر جناحيه وطار بهدوء فوق الأشجار النائمة. كانت الغابة بأكملها هادئة. ساطع القمر برفق على كل منزل، وتحرك نسيم الليل البارد عبر الأوراق. سرعان ما وجد أوليفر أيضاً فرعاً مريحاً وأغلق عينيه. تصبحي على خير ايتها الغابة. أحلام سعيدة للجميع. النهاية.',
+      'fr-FR': 'Alors que le soleil disparaissait derrière les collines, la forêt commença à se préparer pour le sommeil. Les lapins retournèrent dans leurs terriers. Les oiseaux s\'installèrent dans leurs nids et les petits hérissons se blottirent sous les feuilles. Un jeune hibou nommé Oliver observait depuis une branche. « Bonne nuit, fleurs », murmura-t-il. Les fleurs fermèrent doucement leurs pétales. « Bonne nuit, rivière », murmura-t-il. La rivière continuait de couler doucement sur les pierres. « Bonne nuit, petits renards », murmura-t-il. La famille des renards se blottit ensemble à l\'intérieur de leur tanière douillette. Une à une, les étoiles apparurent dans le ciel. Oliver déploya ses ailes et vola tranquillement au-dessus des arbres endormis. Toute la forêt était paisible. La lune brillait doucement sur chaque maison et la brise fraîche de la nuit traversait les feuilles. Bientôt, même Oliver trouva une branche confortable et ferma les yeux. Bonne nuit, forêt. De doux rêves à tout le monde. Fin.',
+      'ko-KR': '해가 언덕 뒤로 넘어가자 숲속은 잠잘 준비를 시작했어요. 토끼들은 보물 굴로 돌아가고, 새들은 포근한 둥지에 자리를 잡았으며, 작은 고슴도치들은 나뭇잎 아래 동그랗게 몸을 말았어요. 올리버라는 아기 부엉이 한 마리가 나뭇가지에 앉아 이 모든 풍경을 바라보고 있었지요. "꽃들아, 잘 자렴," 부엉이가 속삭였어요. 꽃들은 살포시 꽃잎을 접었답니다. "강물아, 잘 자," 부엉이가 속삭였어요. 강물은 돌멩이 위로 부드럽게 흘러갔어요. "아기 여우들아, 잘 자렴," 부엉이가 속삭였어요. 여우 가족은 아늑한 굴속에서 서로를 폭 껴안고 잠잘 준비를 마쳤어요. 밤하늘에 별들이 하나둘씩 반짝이기 시작했어요. 올리버는 날개를 펴고 잠든 나무들 위로 조용히 날아올랐어요. 숲속 전체가 너무나 평화로웠지요. 달님은 모든 집 위를 다정하게 비추고, 시원한 밤바람이 나뭇잎 사이를 살랑이며 스쳐 지나갔어요. 잠시 후, 올리버도 편안한 나뭇가지 자리를 찾아 두 눈을 스르륵 감았답니다. 숲속 친구들 모두 잘 자렴. 예쁜 꿈 꾸세요. 끝.',
+      'ja-JP': '太陽が丘の向こうに沈んでいくと、森は眠る準備を始めました。ウサギたちは自分の巣穴に戻り、小鳥たちは巣に落ち着き、小さなハリネズミたちは葉っぱの下に丸くなりました。オリバーという名前の若いフクロウが、木の枝からその様子を見つめていました。「おやすみなさい、お花たち」と彼はささやきました。お花たちは優しく花びらを閉じました。「おやすみなさい、川さん」と彼はささやきました。川は石の上を優しくサラサラと流れ続けました。「おやすみなさい、子ギツネたち」と彼はささやきました。キツネの家族は居心地の良い巣穴の中でギュッと寄り添いました。空に星が一つ、また一つと顔を出しました。オリバーは羽を広げて、眠っている木々の上を静かに飛びました。森全体が平和に包まれていました。お月さまがすべてのお家を優しく照らし、涼しい夜風が葉の間を通り抜けていきました。やがて、オリバーもお気に入りの居心地の良い枝を見つけて、そっと目を閉じました。おやすみ、小さな森。みんな、良い夢をね。おしまい。'
+    }
+  }
 ];
 
-const storyList=document.getElementById('storyList');
-kidStories.forEach(st=>{
-  const card=document.createElement('div');
-  card.className='bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3';
-  const heading=document.createElement('div');
-  heading.className='flex items-center justify-between gap-2';
-  const title=document.createElement('h3');
-  title.className='text-sm font-black text-white';
-  title.textContent=`${st.emoji} ${st.title}`;
-  const play=document.createElement('button');
-  play.className='kid-btn shrink-0 px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black';
-  play.innerHTML='<i class="fa-solid fa-play mr-1"></i> Read to Me';
-  play.onclick=()=>speakText(`${st.title}. ${st.text}`);
-  heading.append(title,play);
-  const paragraph=document.createElement('p');
-  paragraph.className='text-xs text-gray-300 leading-relaxed';
-  paragraph.textContent=st.text;
-  card.append(heading,paragraph);
-  storyList.appendChild(card);
-});
+function renderStories() {
+  const storyList = document.getElementById('storyList');
+  storyList.innerHTML = '';
+  
+  kidStories.forEach(st => {
+    const titleText = st.title[currentLang] || st.title['en-US'];
+    const bodyText = st.text[currentLang] || st.text['en-US'];
+    
+    let listenLabel = 'Listen';
+    if (currentLang === 'vi-VN') listenLabel = 'Nghe';
+    else if (currentLang === 'zh-CN') listenLabel = '聽故事';
+    else if (currentLang === 'ar-SA') listenLabel = 'استمع';
+    else if (currentLang === 'fr-FR') listenLabel = 'Écouter';
+    else if (currentLang === 'ko-KR') listenLabel = '이야기 듣기';
+    else if (currentLang === 'ja-JP') listenLabel = 'お話を聴く';
 
-const kCanvas=document.getElementById('kidCanvas');
-const kCtx=kCanvas.getContext('2d');
-let kDrawing=false,brushColor='#38bdf8';
+    const card = document.createElement('div');
+    card.className = 'bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3';
+    card.innerHTML = `
+      <div class='flex items-center justify-between gap-2'>
+        <h3 class='text-sm font-black text-white'>${st.emoji} ${titleText}</h3>
+        <button class='kid-btn shrink-0 px-3 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black' onclick="speakText('${titleText.replace(/'/g, "\\'")}. ${bodyText.replace(/'/g, "\\'")}')">
+          <i class='fa-solid fa-play mr-1'></i> ${listenLabel}
+        </button>
+      </div>
+      <p class='text-xs text-gray-300 leading-relaxed'>${bodyText}</p>
+    `;
+    storyList.appendChild(card);
+  });
+}
+
+function showKidTab(tab) {
+  stopKidAudio();
+  ['abc','math','stories','draw'].forEach(t => {
+    document.getElementById('ksec-'+t).classList.toggle('hidden', t !== tab);
+    document.getElementById('ktab-'+t).className = t === tab ? tabStyles[t] :
+      `kid-btn bg-slate-800 ${defaultTabColors[t]} py-3 rounded-2xl font-black text-xs flex flex-col items-center gap-1`;
+  });
+  if (tab === 'draw') resizeKidCanvas();
+}
+
+const kCanvas = document.getElementById('kidCanvas');
+const kCtx = kCanvas.getContext('2d');
+let kDrawing = false, brushColor = '#38bdf8';
+
 function resizeKidCanvas() {
-  const r=kCanvas.getBoundingClientRect();
-  if(r.width>0) {
-    const ratio=window.devicePixelRatio||1;
-    kCanvas.width=Math.round(r.width*ratio);
-    kCanvas.height=Math.round(r.height*ratio);
-    kCtx.setTransform(ratio,0,0,ratio,0,0);
-    kCtx.strokeStyle=brushColor;kCtx.lineWidth=6;kCtx.lineCap='round';kCtx.lineJoin='round';
+  const r = kCanvas.getBoundingClientRect();
+  if (r.width > 0) {
+    const ratio = window.devicePixelRatio || 1;
+    kCanvas.width = Math.round(r.width * ratio);
+    kCanvas.height = Math.round(r.height * ratio);
+    kCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    kCtx.strokeStyle = brushColor;
+    kCtx.lineWidth = 6;
+    kCtx.lineCap = 'round';
+    kCtx.lineJoin = 'round';
   }
 }
-function setBrushColor(c){brushColor=c;kCtx.strokeStyle=c;}
-function clearKidCanvas(){kCtx.clearRect(0,0,kCanvas.width,kCanvas.height);}
-function getKPos(e){const r=kCanvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
-kCanvas.addEventListener('pointerdown',e=>{kDrawing=true;kCanvas.setPointerCapture(e.pointerId);const p=getKPos(e);kCtx.beginPath();kCtx.moveTo(p.x,p.y);});
-kCanvas.addEventListener('pointermove',e=>{if(!kDrawing)return;const p=getKPos(e);kCtx.lineTo(p.x,p.y);kCtx.stroke();});
-['pointerup','pointercancel','lostpointercapture'].forEach(ev=>kCanvas.addEventListener(ev,()=>kDrawing=false));
-window.addEventListener('resize',()=>{if(!document.getElementById('ksec-draw').classList.contains('hidden'))resizeKidCanvas();});
 
-let gateSum=33;
+function setBrushColor(c) { brushColor = c; kCtx.strokeStyle = c; }
+function clearKidCanvas() { kCtx.clearRect(0, 0, kCanvas.width, kCanvas.height); }
+function getKPos(e) { const r = kCanvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+
+kCanvas.addEventListener('pointerdown', e => { kDrawing = true; kCanvas.setPointerCapture(e.pointerId); const p = getKPos(e); kCtx.beginPath(); kCtx.moveTo(p.x, p.y); });
+kCanvas.addEventListener('pointermove', e => { if (!kDrawing) return; const p = getKPos(e); kCtx.lineTo(p.x, p.y); kCtx.stroke(); });
+['pointerup','pointercancel','lostpointercapture'].forEach(ev => kCanvas.addEventListener(ev, () => kDrawing = false));
+window.addEventListener('resize', () => { if (!document.getElementById('ksec-draw').classList.contains('hidden')) resizeKidCanvas(); });
+
+let gateSum = 33;
 function openParentalGate() {
   stopKidAudio();
-  const x=Math.floor(Math.random()*15)+11,y=Math.floor(Math.random()*15)+11;
-  gateSum=x+y;
-  document.getElementById('gateMathPrompt').textContent=`${x} + ${y} = ?`;
-  document.getElementById('gateAnswerInput').value='';
+  const x = Math.floor(Math.random()*15) + 11, y = Math.floor(Math.random()*15) + 11;
+  gateSum = x + y;
+  document.getElementById('gateMathPrompt').textContent = `${x} + ${y} = ?`;
+  document.getElementById('gateAnswerInput').value = '';
   document.getElementById('gateLockView').classList.remove('hidden');
   document.getElementById('gateUnlockedView').classList.add('hidden');
   document.getElementById('parentModal').classList.remove('hidden');
 }
-function closeParentalGate(){document.getElementById('parentModal').classList.add('hidden');}
-function verifyParentalGate(){
-  if(parseInt(document.getElementById('gateAnswerInput').value,10)===gateSum){
+function closeParentalGate() { document.getElementById('parentModal').classList.add('hidden'); }
+function verifyParentalGate() {
+  if (parseInt(document.getElementById('gateAnswerInput').value, 10) === gateSum) {
     document.getElementById('gateLockView').classList.add('hidden');
     document.getElementById('gateUnlockedView').classList.remove('hidden');
-  } else alert('Incorrect answer. Adult verification required.');
+  } else alert('Incorrect answer.');
 }
 
 renderABCs();
+renderStories();
 newMathQuestion();
 checkVoice();
 </script>
