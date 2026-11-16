@@ -166,6 +166,8 @@ let speechWatchdog = null;
 let speechRunId = 0;
 let audioChunks = [];
 let audioChunkIndex = 0;
+let speechChunks = [];
+let speechChunkIndex = 0;
 let currentMode = '';
 let currentUtterance = null;
 let currentSpeechText = '';
@@ -185,14 +187,17 @@ function stopKidAudio() {
   if (speechWatchdog) clearTimeout(speechWatchdog);
   speechWatchdog = null;
   try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch(e) {}
+  try { if (window.responsiveVoice && typeof responsiveVoice.cancel === 'function') responsiveVoice.cancel(); } catch(e) {}
   try { voiceAudio.pause(); voiceAudio.removeAttribute('src'); voiceAudio.load(); } catch(e) {}
   audioChunks = [];
   audioChunkIndex = 0;
+  speechChunks = [];
+  speechChunkIndex = 0;
   currentMode = '';
   currentUtterance = null;
   setVoiceStatus('Voice stopped.');
 }
-function splitForSpeech(text, maxLength=170) {
+function splitForSpeech(text, maxLength=160) {
   const words = String(text).trim().split(/\s+/);
   const chunks = [];
   let part = '';
@@ -248,6 +253,56 @@ function startOnlineFallback(text, runId) {
   currentMode = 'audio';
   playOnlineChunk(runId);
 }
+
+function playNextSpeechChunk(runId) {
+  if (runId !== speechRunId) return;
+  if (speechChunkIndex >= speechChunks.length) {
+    currentMode = '';
+    setVoiceStatus('Narration finished.', 'success');
+    return;
+  }
+
+  const chunk = speechChunks[speechChunkIndex];
+
+  if (window.responsiveVoice && typeof responsiveVoice.speak === 'function') {
+    let rvVoice = 'UK English Female';
+    if (currentLang === 'es-ES') rvVoice = 'Spanish Female';
+    if (currentLang === 'fr-FR') rvVoice = 'French Female';
+    if (currentLang === 'vi-VN') rvVoice = 'Vietnamese Female';
+    if (currentLang === 'zh-CN') rvVoice = 'Chinese Female';
+    if (currentLang === 'ko-KR') rvVoice = 'Korean Female';
+    if (currentLang === 'ja-JP') rvVoice = 'Japanese Female';
+    if (currentLang === 'ar-SA') rvVoice = 'Arabic Female';
+
+    try {
+      responsiveVoice.speak(chunk, rvVoice, {
+        rate: 0.88,
+        pitch: 1.08,
+        volume: 1,
+        onstart: () => {
+          if (runId !== speechRunId) return;
+          currentMode = 'responsive';
+          setVoiceStatus('Speaking…', 'playing');
+        },
+        onend: () => {
+          if (runId !== speechRunId) return;
+          speechChunkIndex++;
+          playNextSpeechChunk(runId);
+        },
+        onerror: () => {
+          if (runId !== speechRunId) return;
+          startOnlineFallback(speechChunks.slice(speechChunkIndex).join(' '), runId);
+        }
+      });
+      return;
+    } catch (e) {
+      startOnlineFallback(speechChunks.slice(speechChunkIndex).join(' '), runId);
+    }
+  } else {
+    startOnlineFallback(speechChunks.slice(speechChunkIndex).join(' '), runId);
+  }
+}
+
 function speakText(text) {
   const cleanText = String(text || '').trim();
   if (!cleanText) return;
@@ -263,41 +318,9 @@ function speakText(text) {
   currentSpeechText = cleanText;
   setVoiceStatus('Preparing voice…', 'playing');
 
-  if (window.responsiveVoice && typeof responsiveVoice.speak === 'function') {
-    let rvVoice = 'UK English Female';
-    if (currentLang === 'es-ES') rvVoice = 'Spanish Female';
-    if (currentLang === 'fr-FR') rvVoice = 'French Female';
-    if (currentLang === 'vi-VN') rvVoice = 'Vietnamese Female';
-    if (currentLang === 'zh-CN') rvVoice = 'Chinese Female';
-    if (currentLang === 'ko-KR') rvVoice = 'Korean Female';
-    if (currentLang === 'ja-JP') rvVoice = 'Japanese Female';
-    if (currentLang === 'ar-SA') rvVoice = 'Arabic Female';
-
-    try {
-      responsiveVoice.speak(cleanText, rvVoice, {
-        rate: 0.88,
-        pitch: 1.08,
-        volume: 1,
-        onstart: () => {
-          if (runId !== speechRunId) return;
-          currentMode = 'responsive';
-          setVoiceStatus('Speaking…', 'playing');
-        },
-        onend: () => {
-          if (runId !== speechRunId) return;
-          currentMode = '';
-          setVoiceStatus('Narration finished.', 'success');
-        },
-        onerror: () => {
-          if (runId !== speechRunId) return;
-          currentMode = '';
-          startOnlineFallback(cleanText, runId);
-        }
-      });
-      return;
-    } catch (e) {}
-  }
-  startOnlineFallback(cleanText, runId);
+  speechChunks = splitForSpeech(cleanText, 160);
+  speechChunkIndex = 0;
+  playNextSpeechChunk(runId);
 }
 
 function testVoice() {
@@ -557,7 +580,7 @@ const kidStories = [
     },
     text: {
       'en-US': 'High above the earth lived a little star named Sparkle. Every night, Sparkle twinkled brightly with all the other stars. But one evening, Sparkle felt tired and could not shine as brightly as before. “Oh dear,” Sparkle whispered. “I have forgotten how to twinkle!” The moon smiled kindly. “You do not have to be the brightest star. Just be yourself.” Sparkle looked down at the world. A little child was looking up at the sky, hoping to see a friendly star. Sparkle took a deep breath and gave one tiny twinkle. The child smiled. Sparkle tried again. This time, the little star shone a little brighter. Soon, Sparkle was twinkling happily with the other stars. Sparkle learned that even a small light can make someone smile. The end.',
-      'vi-VN': 'Tít trên cao trái đất có một ngôi sao nhỏ tên là Sparkle. Mỗi đêm, Sparkle đều lấp lánh rực rỡ cùng tất cả các ngôi sao khác. Nhưng có một buổi tối, Sparkle cảm thấy mệt mỏi và không thể tỏa sáng rực rỡ như trước. “Ôi trời,” Sparkle thì thầm. “Mình quên cách lấp lánh rồi!” Mặt trăng mỉm cười hiền từ. “Bạn không cần phải là ngôi sao sáng nhất. Hãy là chính mình thôi.” Sparkle nhìn xuống thế giới. Một em bé đang nhìn lên bầu trời, hy vọng nhìn thấy một ngôi sao thân thiện. Sparkle hít một hơi thật sâu và nhấp nháy một cái thật nhẹ. Đứa trẻ mỉm cười. Sparkle thử lại. Lần này, ngôi sao nhỏ tỏa sáng hơn một chút. Chẳng mấy chốc, Sparkle lại lấp lánh hạnh phúc cùng các ngôi sao khác. Sparkle học được rằng ngay cả một ánh sáng nhỏ cũng có thể làm ai đó mỉm cười. Hết.',
+      'vi-VN': 'Tít trên cao trái đất có một ngôi sao nhỏ tên là Sparkle. Mỗi đêm, Sparkle đều lấp lánh rực rỡ cùng tất cả các ngôi sao khác. Nhưng có một buổi tối, Sparkle cảm thấy mệt mỏi và không thể tỏa sáng rực rỡ như trước. “Ôi trời,” Sparkle thì thầm. “Mình quên cách lấp lánh rồi!” Mặt trăng mỉm cười hiền từ. “Bạn không cần phải là ngôi sao sáng nhất. Hãy là chính mình thôi.” Sparkle xuống nhìn thế giới. Một em bé đang nhìn lên bầu trời, hy vọng nhìn thấy một ngôi sao thân thiện. Sparkle hít một hơi thật sâu và nhấp nháy một cái thật nhẹ. Đứa trẻ mỉm cười. Sparkle thử lại. Lần này, ngôi sao nhỏ tỏa sáng hơn một chút. Chẳng mấy chốc, Sparkle lại lấp lánh hạnh phúc cùng các ngôi sao khác. Sparkle học được rằng ngay cả một ánh sáng nhỏ cũng có thể làm ai đó mỉm cười. Hết.',
       'zh-CN': '在地球高空住著一顆叫閃閃的小星星。每天晚上，閃閃都和其他星星一起閃閃發光。但有一天晚上，閃閃覺得很累，光芒不如以前那麼亮了。「天哪，」閃閃低聲說，「我忘記怎麼閃爍了！」月亮慈祥地笑了笑。「你不需要成為最亮的星星，做你自己就好。」閃閃向下看著世界。一個小孩正仰望天空，希望能看到一顆友善的星星。閃閃深吸了一口氣，輕輕地閃爍了一下。那孩子笑了。閃閃又試了一次。這一次，小星光亮了一些。不久，閃閃和其它星星一起快樂地閃爍著。閃閃明白了，即使是一道微弱的光也能讓某人微笑。故事結束。',
       'ar-SA': 'عالية فوق الأرض عاشت نجمة صغيرة اسمها سباركل. كل ليلة، كانت سباركل تتلألأ ببريق مع جميع النجوم الأخرى. ولكن ذات أمسية، شعرت سباركل بالتعب ولم تستطيع التألق بالسطوع كما كانت من قبل. همست سباركل: "يا الهي، لقد نسيت كيف أتألق!" ابتسم القمر بلطف. "لا يجب أن تكوني النجمة الأكثر لمعاناً. كوني نفسك فقط." نظرت سباركل إلى الأسفل نحو العالم. كان طفل صغير ينظر إلى السماء، أملاً في رؤية نجمة ودودة. أخذت سباركل نفساً عميقاً وأعطت وميضاً صغيراً واحداً. ابتسم الطفل. حاولت سباركل مرة أخرى. هذه المرة، أشرقت النجمة الصغيرة بشكل أكثر إشراقاً. سرعان ما كانت سباركل تتلألأ بسعادة مع النجوم الأخرى. تعلمت سباركل أن حتى الضوء الصغير يمكن أن يجعل شخصاً ما يبتسم. النهاية.',
       'fr-FR': 'Bien au-dessus de la terre vivait une petite étoile nommée Sparkle. Chaque nuit, Sparkle scintillait brillamment avec toutes les autres étoiles. Mais un soir, Sparkle se sentit fatiguée et ne put briller aussi fort qu\'avant. « Oh mon dieu », murmura Sparkle. « J\'ai oublié comment scintiller ! » La lune sourit gentiment. « Tu n\'es pas obligée d\'être l\'étoile la plus brillante. Sois simplement toi-même. » Sparkle regarda le monde en bas. Un petit enfant levait les yeux vers le ciel, espérant voir une étoile amicale. Sparkle prit une profonde inspiration et fit un tout petit scintillement. L\'enfant sourit. Sparkle réessaya. Cette fois, la petite étoile brilla un peu plus fort. Bientôt, Sparkle scintillait joyeusement avec les autres étoiles. Sparkle apprit que même une petite lumière peut faire sourire quelqu\'un. Fin.',
@@ -609,7 +632,7 @@ const kidStories = [
       'zh-CN': '諾拉住在一個美麗的海灘附近。她喜歡聽海浪輕輕拍打沙灘的聲音。一天晚上，諾拉和爺爺一起在海灘上散步。他們看著太陽慢慢消失在海平面以下。「為什麼海浪總是一直回來呢？」諾拉問。爺爺笑了笑。「大海有著溫柔的節奏，就像呼吸一樣。海浪湧進來，又退出去。」諾拉仔細地聽著。海浪嘩啦啦地響。微風沙沙地吹。一隻小螃蟹橫著走過沙灘，一隻海鳥靜靜地落在一塊石頭上。諾拉撿了一枚光滑的貝殼，回家後放在床邊。那天晚上，她記住了大海平靜的聲音。她閉上眼睛，想像著海浪唱著柔和的搖籃曲。故事結束。',
       'ar-SA': 'عاشت نورا بالقرب من شاطئ جميل. أحبت الاستماع إلى الأمواج وهي تتدحرج برفق على الرمال. ذات أمسية، مشت نورا على طول الشاطئ مع جدها. شاهدا الشمس تختفي ببطء وراء البحر. سألت نورا: "لماذا تستمر الأمواج في العودة؟" ابتسم الجد. "البحر له إيقاع لطيف، تماماً مثل التنفس. تأتي الأمواج وتذهب الأمواج." استمعت نورا بعناية. صوت الأمواج يتطاير. صوت النسيم يهب. مشى سلطعون صغير جانبياً عبر الرمال، واستقر طائر بحري بهدوء على صخرة. جمعت نورا صدفة ناعمة واحدة ووضعتها بجانب سريرها عندما عادت إلى المنزل. في تلك الليلة، تذكرت صوت المحيط الهادئ. أغلقَت عينيها وتخيلت الأمواج تغني تهويدة ناعمة. النهاية.',
       'fr-FR': 'Nora vivait près d\'une belle plage. Elle adorait écouter les vagues se dérouler doucement sur le sable. Un soir, Nora se promena le long de la plage avec son grand-père. Ils regardèrent le soleil disparaître lentement derrière la mer. « Pourquoi les vagues reviennent-elles sans cesse ? » demanda Nora. Grand-père sourit. « La mer a un rythme doux, tout comme la respiration. Les vagues entrent et les vagues sortent. » Nora écouta attentivement. Whoosh, faisaient les vagues. Whoosh, faisait la brise. Un petit crabe marchait de côté sur le sable, et un oiseau de mer s\'installa tranquillement sur un rocher. Nora ramassa un coquillage lisse et le plaça à côté de son lit lorsqu\'elle rentra chez elle. Cette nuit-là, elle se souvint du son paisible de l\'océan. Elle ferma les yeux et imagina les vagues chantant une douce berceuse. Fin.',
-      'ko-KR': '노라는 아름다운 해변 근처에 살았어요. 모래사장에 부드럽게 밀려오는 파도 소리를 듣는 것을 정말 좋아했지요. 어느 날 저녁, 노らは할아버지와 함께 해변을 산책했어요. 바다 너머로 해가 천천히 저물어가는 모습을 바라보았지요. "파도는 왜 자꾸 다시 밀려오는 거예요?" 노라가 물었어요. 할아버지가 미소 지으며 말씀하셨어요. "바다는 숨을 쉬는 것처럼 부드러운 리듬을 가지고 있단다. 파도가 밀려오고, 또 파도가 밀려 나가지." 노라는 귀를 기울였어요. 쏴아아 파도 소리가 들리고, 살랑살랑 바람 소리가 불어왔어요. 작은 게 한 마리가 모래 위를 옆으로 아르바바 기어 갔고, 바닷새 한 마리가 바위에 조용히 내려앉았어요. 노라는 매끄러운 조개껍데기 하나를 주워 집에 와서 침대 옆에 놓아두었어요. 그날 밤, 노라는 바다의 평화로운 소리를 기억하며 두 눈을 감고 파도가 부드러운 자장가를 불러주는 상상을 했답니다. 끝.',
+      'ko-KR': '노사는 아름다운 해변 근처에 살았어요. 모래사장에 부드럽게 밀려오는 파도 소리를 듣는 것을 정말 좋아했지요. 어느 날 저녁, 노らは할아버지와 함께 해변을 산책했어요. 바다 너머로 해가 천천히 저물어가는 모습을 바라보았지요. "파도는 왜 자꾸 다시 밀려오는 거예요?" 노라가 물었어요. 할아버지가 미소 지으며 말씀하셨어요. "바다는 숨을 쉬는 것처럼 부드러운 리듬을 가지고 있단다. 파도가 밀려오고, 또 파도가 밀려 나가지." 노らは귀를 기울였어요. 쏴아아 파도 소리가 들리고, 살랑살랑 바람 소리가 불어왔어요. 작은 게 한 마리가 모래 위를 옆으로 아르바바 기어 갔고, 바닷새 한 마리가 바위에 조용히 내려앉았어요. 노らは매끄러운 조개껍데기 하나를 주워 집에 와서 침대 옆에 놓아두었어요. 그날 밤, 노らは바다의 평화로운 소리를 기억하며 두 눈을 감고 파도가 부드러운 자장가를 불러주는 상상을 했답니다. 끝.',
       'ja-JP': 'ノラは美しい浜辺の近くに住んでいました。砂浜に優しく打ち寄せる波の音を聞くのが大好きでした。ある日の夕方、ノラはおじいちゃんと一緒に浜辺を散歩しました。太陽がゆっくりと海の向こうに沈んでいくのを見つめました。「どうして波は何度も何度も戻ってくるの？」ノラが尋ねました。おじいちゃんはニコッと微笑みました。「海にはね、呼吸のように優しいリズムがあるんだよ。波が寄せてきて、そして波が引いていくんだ。」ノラはしっかりと耳を澄ました。ザブーンと波が打ち寄せます。ヒューと風が吹きます。小さなカニが砂浜を横歩きし、海鳥が岩の上で静かに羽を休めました。ノラはツルツルの貝殻を一つ拾って、お家に帰ってベッドの脇に置きました。その夜、彼女は海の穏やかな音を思い出しました。目を閉じ、波が優しい子守唄を歌っているのを想像しました。おしまい。'
     }
   },
@@ -703,7 +726,7 @@ const kidStories = [
       'en-US': 'Sammy the squirrel loved collecting acorns in the forest. One chilly morning, Sammy found one large, shiny acorn beneath an oak tree. “This will be my special acorn,” he said. As he carried it home, he met a hungry little mouse. “Do you have anything to eat?” asked the mouse. Sammy looked at his special acorn. He had only one, but he decided to share it. “Here, let us enjoy it together,” he said. They sat beneath the oak tree and shared the acorn. The mouse smiled and thanked Sammy. Later, the mouse showed Sammy a hidden place where many acorns had fallen. Sammy laughed with delight. He had shared what he had, and kindness had brought him a new friend. That evening, Sammy curled up in his warm nest and dreamed happily. The end.',
       'vi-VN': 'Chú sóc Sammy rất thích thu thập hạt dẻ trong rừng. Một buổi sáng se lạnh, Sammy tìm thấy một hạt dẻ lớn và sáng bóng dưới gốc cây sồi. “Đây sẽ là hạt dẻ đặc biệt của mình,” chú nói. Khi đang mang nó về nhà, chú gặp một chú chuột nhỏ đang đói bụng. “Bạn có gì để ăn không?” chú chuột hỏi. Sammy nhìn hạt dẻ đặc biệt của mình. Chú chỉ có một hạt duy nhất, nhưng chú quyết định chia sẻ nó. “Nào, chúng ta cùng thưởng thức nhé,” chú nói. Họ ngồi dưới gốc cây sồi và chia nhau hạt dẻ. Chú chuột mỉm cười và cảm ơn Sammy. Sau đó, chú chuột đã chỉ cho Sammy một nơi ẩn trù mà rất nhiều hạt dẻ đã rơi xuống. Sammy cười sung sướng. Chú đã chia sẻ những gì mình có, và lòng tốt đã mang lại cho chú một người bạn mới. Tối hôm đó, chú cuộn mình trong chiếc tổ ấm áp và mơ những giấc mơ hạnh phúc. Hết.',
       'zh-CN': '小松鼠薩米喜歡在森林裡收集橡果。一個寒冷的早晨，薩米在橡樹下發現了一顆又大又閃亮的橡果。「這將是我的特別橡果，」他說。當他把它帶回家時，他遇到了一隻飢餓的小老鼠。「你有什麼吃的嗎？」老鼠問。薩米看著他的特別橡果。他只有一顆，但他決定分享它。「來吧，我們一起享用吧，」他說。他們坐在橡樹下分享了橡果。老鼠微笑着感謝薩米。後來，老鼠帶薩米去了一個藏有許多落下的橡果的秘密地方。薩米開心地笑了。他分享了他擁有的東西，善良為他帶來了新朋友。那天晚上，薩米蜷縮在溫暖的巢穴裡，幸福地做着夢。故事結束。',
-      'ar-SA': 'أحب السنجاب سامي جمع البلوط في الغابة. في صباح بارد، وجد سامي بلوطة كبيرة لامعة تحت شجرة بلوط. قال: "ستكون هذه بلوطتي الخاصة." بينما كان يحملها إلى المنزل، واجه فأراً صغيراً جائعاً. سأل الفأر: "هل لديك أي شيء تأكله؟" نظر سامي إلى بلوطته الخاصة. كان لديه واحدة فقط، لكنه قرر مشاركتها. قال: "هنا، دعنا نستمتع بها معاً." جلسا تحت شجرة بلوط وتقاسما البلوطة. ابتسم الفأر وشكر سامي. لاحقاً، أراى الفأر سامي مكاناً مخفياً حيث سقط الكثير من البلوط. ضحك سامي بفرح. لقد شارك ما لديه، وقد جلب له اللطف صديقاً جديداً. في تلك الليلة، انكمش سامي في عشه الدافئ وحلم بسعادة. النهاية.',
+      'ar-SA': 'أحب السنجاب سامي جمع البلوط في الغابة. في صباح بارد، وجد سامي بلوطة كبيرة لامعة تحت شجرة بلوط. قال: "ستكون هذه بلوطتي الخاصة." بينما كان يحملها إلى المنزل، واجه فأراً صغيراً جائعاً. سألت الفأر: "هل لديك أي شيء تأكله؟" نظر سامي إلى بلوطته الخاصة. كان لديه واحدة فقط، لكنه قرر مشاركتها. قال: "هنا، دعنا نستمتع بها معاً." جلسا تحت شجرة بلوط وتقاسما البلوطة. ابتسم الفأر وشكر سامي. لاحقاً، أراى الفأر سامي مكاناً مخفياً حيث سقط الكثير من البلوط. ضحك سامي بفرح. لقد شارك ما لديه، وقد جلب له اللطف صديقاً جديداً. في تلك الليلة، انكمش سامي في عشه الدافئ وحلم بسعادة. النهاية.',
       'fr-FR': 'Sammy l\'écureuil adorait ramasser des glands dans la forêt. Par un matin frais, Sammy trouva un grand gland brillant sous un chêne. « Ce sera mon gland spécial », dit-il. En le ramenant à la maison, il rencontra une petite souris affamée. « As-tu quelque chose à manger ? » demanda la souris. Sammy regarda son gland spécial. Il n\'en avait qu\'un, mais il décida de le partager. « Tiens, savourons-le ensemble », dit-il. Ils s\'assirent sous le chêne et partagèrent le gland. La souris sourit et remercia Sammy. Plus tard, la souris montra à Sammy un endroit caché où de nombreux glands étaient tombés. Sammy rit de joie. Il avait partagé ce qu\'il avait, et la gentillesse lui avait apporté un nouvel ami. Ce soir-là, Sammy se blottit dans son nid chaud et rêva heureux. Fin.',
       'ko-KR': '다람쥐 새미는 숲속에서 도토리를 모으는 것을 정말 좋아했어요. 쌀쌀한 어느 날 아침, 새미는 참나무 아래에서 크고 반짝이는 도토리 하나를 발견했어요. "이건 나의 특별한 도토리가 될 거야," 새미가 말했지요. 도토리를 들고 집으로 가던 길에, 배가 고픈 아기 생쥐 한 마리를 만났어요. "먹을 것 좀 있니?" 생쥐가 물었어요. 새미는 자신이 가진 특별한 도토리를 내려다보았어요. 딱 하나뿐이었지만, 함께 나누어 먹기로 결심했지요. "자, 우리 같이 맛있게 먹자," 새미가 말했어요. 둘은 참나무 아래에 나란히 앉아 도토리를 나누어 먹었어요. 생쥐는 미소를 지으며 새미에게 고마움을 전했어요. 나중에 생쥐는 도토리가 수없이 떨어져 있는 비밀 장소를 새미에게 알려주었어요. 새미는 기쁨에 겨워 꺄르르 웃었지요. 자신이 가진 것을 기꺼이 나누어 준 덕분에 친절이 새로운 친구를 선물해 준 거예요. 그날 밤, 새미는 따뜻한 보물 둥지에 웅크리고 누워 행복한 꿈을 꾸었답니다. 끝.',
       'ja-JP': 'リスのサミーは、森の中でドングリを集めるのが大好きでした。肌寒いある朝、サミーはオークの木の下で、大きくてピカピカ光るドングリを一つ見つけました。「これが僕の特別なドングリだぞ」と彼は言いました。お家に持って帰る途中、お腹をペコペコに空かせた小さなネズミに出会いました。「何か食べるもの、持っていない？」とネズミが尋ねました。サミーは自分の特別なドングリを見つめました。一つしかなかったけれど、分け合うことに決めました。「さあ、一緒に美味しく食べようよ」と彼は言いました。二人はオークの木の下に座って、ドングリを分け合いました。ネズミはニコッと笑ってサミーにお礼を言いました。しばらくして、ネズミはサミーに、ドングリがたくさん落ちている秘密の場所を教えてくれました。サミーは大喜びでケラケラ笑いました。自分の持っているものを分け合ったことで、優しさが新しいお友達を連れてきてくれたのです。その夜、サミーは温かいベッドに丸まって、幸せな夢を見ました。おしまい。'
